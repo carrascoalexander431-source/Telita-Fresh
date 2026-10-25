@@ -205,18 +205,34 @@
             if(t && !isNaN(t)) { tasaBCV = parseFloat(t); document.getElementById('tasaBCVDisplay').textContent = `${tasaBCV.toFixed(2)} Bs/$`; }
         }
 
-        // Método infalible para enviar peticiones POST desde móviles sin bloqueos CORS
-        function enviarAccionGoogle(paramsObj) {
+        // Función robusta para ejecutar acciones en Google Sheets mediante JSONP (sin bloqueos móviles)
+        function ejecutarAccionGoogle(paramsObj, mensajeExito) {
+            showToast("Procesando en la base de datos...");
+            const actionId = 'action-script-loader';
+            if(document.getElementById(actionId)) document.getElementById(actionId).remove();
+
             let params = new URLSearchParams(paramsObj);
-            let img = document.createElement('img');
-            img.src = `${WEB_URL}?${params.toString()}`;
-            img.style.display = 'none';
-            document.body.appendChild(img);
-            setTimeout(() => img.remove(), 2000);
+            params.append('callback', 'cbAccionResultado');
+
+            window.cbAccionResultado = function(res) {
+                if(res && res.success) {
+                    showToast(mensajeExito);
+                    setTimeout(sincronizarDatos, 1000);
+                } else {
+                    showToast("Error en la operación", "error");
+                }
+            };
+
+            let s = document.createElement('script');
+            s.id = actionId;
+            s.src = `${WEB_URL}?${params.toString()}`;
+            s.onerror = function() {
+                showToast("Error de conexión con la base de datos");
+            };
+            document.body.appendChild(s);
         }
 
         function sincronizarDatos() {
-            showToast("Sincronizando con base de datos...");
             const scriptId = 'jsonp-loader';
             if(document.getElementById(scriptId)) document.getElementById(scriptId).remove();
 
@@ -227,7 +243,6 @@
                     renderSelects();
                     renderClientesUI(clientesData);
                     renderProductosUI(productosData);
-                    showToast("¡Datos actualizados!");
                 }
             }
 
@@ -335,45 +350,37 @@
 
         function guardarCliente(e) {
             e.preventDefault();
-            enviarAccionGoogle({
+            ejecutarAccionGoogle({
                 action: 'guardarCliente',
                 cedula: document.getElementById('mCedula').value,
                 nombre: document.getElementById('mNombre').value,
                 telefono: document.getElementById('mTelefono').value,
                 direccion: document.getElementById('mDireccion').value
-            });
+            }, "¡Cliente guardado en Google Sheets!");
             cerrarModal('modalCliente');
-            showToast("¡Cliente guardado en Google Sheets!");
-            setTimeout(sincronizarDatos, 1500);
         }
 
         function eliminarCliente(fila, nombre) {
             if(confirm(`¿Estás seguro de eliminar al cliente: ${nombre}?`)) {
-                enviarAccionGoogle({ action: 'eliminarCliente', fila: fila });
-                showToast("Cliente eliminado");
-                setTimeout(sincronizarDatos, 1500);
+                ejecutarAccionGoogle({ action: 'eliminarCliente', fila: fila }, "Cliente eliminado");
             }
         }
 
         function guardarProducto(e) {
             e.preventDefault();
-            enviarAccionGoogle({
+            ejecutarAccionGoogle({
                 action: 'guardarProducto',
                 codigo: document.getElementById('pCodigo').value,
                 nombre: document.getElementById('pNombre').value,
                 precio: document.getElementById('pPrecio').value,
                 stock: document.getElementById('pStock').value || 0
-            });
+            }, "¡Producto guardado en Google Sheets!");
             cerrarModal('modalProducto');
-            showToast("¡Producto guardado en Google Sheets!");
-            setTimeout(sincronizarDatos, 1500);
         }
 
         function eliminarProducto(fila, nombre) {
             if(confirm(`¿Estás seguro de eliminar el producto: ${nombre}?`)) {
-                enviarAccionGoogle({ action: 'eliminarProducto', fila: fila });
-                showToast("Producto eliminado");
-                setTimeout(sincronizarDatos, 1500);
+                ejecutarAccionGoogle({ action: 'eliminarProducto', fila: fila }, "Producto eliminado");
             }
         }
 
@@ -386,7 +393,7 @@
             let cant = document.getElementById('pedidoCantidad').value;
             let precio = document.getElementById('pedidoPrecio').value;
 
-            enviarAccionGoogle({
+            ejecutarAccionGoogle({
                 action: 'nuevoPedido',
                 cedulaCliente: cedula,
                 nombreCliente: nombre,
@@ -394,9 +401,8 @@
                 totalUsd: (cant * precio).toFixed(2),
                 totalBs: ((cant * precio) * tasaBCV).toFixed(2),
                 fecha: new Date().toLocaleString()
-            });
+            }, "¡Pedido registrado y notificado a Telegram!");
 
-            showToast("¡Pedido registrado y notificado!");
             document.getElementById('formPedido').reset();
             document.getElementById('resumenUsd').textContent = "$0.00";
             document.getElementById('resumenBs').textContent = "Bs. 0.00";
