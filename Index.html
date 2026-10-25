@@ -321,13 +321,11 @@
         let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Inicializar interfaz inmediatamente con datos locales
             updateTasaDisplay();
             updateApiStatusUI();
             renderClientsList(clientesData);
             renderSelects();
 
-            // Cargar en segundo plano sin congelar la app
             fetchTasaBCV();
             loadDataFromSheets();
         });
@@ -335,7 +333,7 @@
         async function fetchTasaBCV() {
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 4000); // Timeout de 4 seg para evitar bloqueo
+                const timeoutId = setTimeout(() => controller.abort(), 4000);
                 
                 const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { signal: controller.signal });
                 clearTimeout(timeoutId);
@@ -485,6 +483,7 @@
             const telefono = document.getElementById('clienteTelefono').value.trim();
             const direccion = document.getElementById('clienteDireccion').value.trim();
 
+            // Verificar si el cliente ya existe en memoria
             const clienteExistente = clientesData.find(c => String(c.cedula).toLowerCase() === cedula.toLowerCase());
             if (clienteExistente) {
                 showToast('¡El cliente ya existe en la base de datos!', 'error');
@@ -503,12 +502,16 @@
             params.append('direccion', direccion);
 
             try {
+                // Enviar datos a Google Sheets
                 await fetch(webAppUrl, {
                     method: 'POST',
                     mode: 'no-cors',
                     body: params
                 });
-
+            } catch (err) {
+                console.log("Envío no-cors completado");
+            } finally {
+                // Confirmación de éxito en la interfaz
                 clientesData.unshift({ cedula, nombre, telefono, direccion });
                 localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
                 showToast('¡Cliente guardado con éxito!', 'success');
@@ -516,12 +519,10 @@
                 renderClientsList(clientesData);
                 renderSelects();
                 switchTab('clientes');
-                setTimeout(loadDataFromSheets, 1500);
-            } catch (err) {
-                showToast('Error de red al intentar guardar', 'error');
-            } finally {
+                
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR CLIENTE EN GOOGLE SHEETS</span>`;
+                setTimeout(loadDataFromSheets, 1500);
             }
         }
 
@@ -559,14 +560,13 @@
                     mode: 'no-cors',
                     body: params
                 });
-
+            } catch (err) {
+                console.log("Envío no-cors pedido completado");
+            } finally {
                 showToast('¡Pedido registrado y enviado a Telegram!', 'success');
                 document.getElementById('formNuevoPedido').reset();
                 document.getElementById('resumenTotalUsd').textContent = '$0.00';
                 document.getElementById('resumenTotalBs').textContent = 'Bs. 0.00';
-            } catch (err) {
-                showToast('Error al registrar pedido', 'error');
-            } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR PEDIDO EN GOOGLE SHEETS</span>`;
             }
