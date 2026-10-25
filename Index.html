@@ -3,605 +3,391 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telita Fresh - Gestión de Pedidos y Clientes</title>
+    <title>Telita Fresh - Sistema de Gestión</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            500: '#16a34a',
-                            600: '#15803d',
-                            700: '#166534',
-                            800: '#14532d',
-                        },
-                        cream: {
-                            50: '#fdfbf7',
-                            100: '#f8f4eb',
-                            200: '#f0e6d2',
-                            300: '#e5d3b3',
-                        },
-                        wood: {
-                            700: '#5c3d2e',
-                            800: '#422a1d',
-                            900: '#2c1a11',
-                        }
+                        cream: { 50: '#fdfbf7', 100: '#f8f4eb', 200: '#f0e6d2', 300: '#e5d3b3' },
+                        wood: { 700: '#5c3d2e', 800: '#422a1d', 900: '#2c1a11' }
                     },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        serif: ['Playfair Display', 'serif'],
-                    }
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Playfair Display', 'serif'] }
                 }
             }
         }
     </script>
-    <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
 </head>
 <body class="h-full text-slate-800 antialiased flex flex-col justify-between max-w-md mx-auto bg-cream-50 shadow-2xl min-h-screen relative">
 
-    <!-- Header / Branding -->
+    <!-- Header -->
     <header class="bg-gradient-to-r from-wood-900 via-wood-800 to-wood-900 text-amber-50 p-4 sticky top-0 z-30 shadow-md border-b border-amber-900/50">
         <div class="flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <div class="w-11 h-11 rounded-full overflow-hidden border-2 border-emerald-400 shadow-md bg-stone-950 flex-shrink-0 flex items-center justify-center">
-                    <img src="logo.jpeg" 
-                         alt="Telita Fresh Logo" 
-                         class="w-full h-full object-cover"
-                         onerror="handleLogoError(this)">
+                <div class="w-11 h-11 rounded-full overflow-hidden border-2 border-emerald-400 shadow-md bg-stone-950 flex items-center justify-center">
+                    <img src="logo.jpeg" alt="Logo" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='🧀'">
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight tracking-wide text-amber-100 font-serif">TELITA FRESH</h1>
-                    <p class="text-[11px] text-emerald-400 font-medium">Lácteos & Quesos Frescos</p>
+                    <h1 class="font-bold text-lg leading-tight text-amber-100 font-serif">TELITA FRESH</h1>
+                    <p class="text-[11px] text-emerald-400 font-medium">Gestión Integral</p>
                 </div>
             </div>
-            <button onclick="toggleConfigModal()" title="Configuración de Apps Script" class="p-2.5 rounded-full bg-wood-700/60 hover:bg-wood-700 text-amber-200 transition border border-amber-800/60 shadow-inner">
-                <i class="fa-solid fa-plug text-xs" id="apiStatusIcon"></i>
+            <button onclick="sincronizarDatos()" title="Sincronizar" class="p-2.5 rounded-full bg-wood-700 hover:bg-wood-600 text-amber-200 transition">
+                <i class="fa-solid fa-rotate text-xs"></i>
             </button>
         </div>
     </header>
 
     <!-- Tasa BCV Bar -->
-    <div class="bg-cream-200/90 border-b border-cream-300 px-4 py-2.5 flex justify-between items-center text-xs shadow-sm">
+    <div class="bg-cream-200 px-4 py-2 flex justify-between items-center text-xs shadow-sm border-b border-cream-300">
         <div class="flex items-center gap-2 font-medium text-wood-900">
             <i class="fa-solid fa-building-columns text-emerald-700"></i>
             <span>Tasa BCV:</span>
-            <span id="tasaBCVDisplay" class="font-extrabold text-emerald-800 text-sm">45.50 Bs/$</span>
+            <span id="tasaBCVDisplay" class="font-bold text-emerald-800">-- Bs/$</span>
         </div>
-        <div class="flex items-center gap-2">
-            <button onclick="editTasaManual()" class="text-wood-800 hover:text-wood-900 font-semibold underline text-[11px]">
-                <i class="fa-solid fa-pen-to-square"></i> Editar
-            </button>
-            <button onclick="fetchTasaBCV()" title="Actualizar BCV" class="text-emerald-700 hover:text-emerald-900">
-                <i class="fa-solid fa-rotate text-xs"></i>
-            </button>
-        </div>
+        <button onclick="editTasaManual()" class="text-wood-800 underline font-semibold text-[11px]">Editar</button>
     </div>
 
-    <!-- Main Dynamic Content Container -->
-    <main class="flex-1 p-4 pb-24 overflow-y-auto space-y-4" id="mainContainer">
+    <!-- Main Container -->
+    <main class="flex-1 p-4 pb-24 overflow-y-auto space-y-4">
 
-        <!-- TAB 1: REGISTRAR PEDIDO -->
+        <!-- TAB 1: PEDIDOS -->
         <section id="tab-pedido" class="tab-content space-y-4">
-            <div class="border-b pb-2 border-slate-200">
-                <h2 class="text-base font-bold text-wood-900 flex items-center gap-2">
-                    <i class="fa-solid fa-cart-shopping text-emerald-600"></i> Nuevo Pedido
-                </h2>
-                <p class="text-[11px] text-slate-500">Registra un pedido vinculado a tus clientes y productos</p>
+            <div class="border-b pb-2">
+                <h2 class="text-base font-bold text-wood-900 flex items-center gap-2"><i class="fa-solid fa-cart-shopping text-emerald-600"></i> Nuevo Pedido</h2>
             </div>
-
-            <form id="formNuevoPedido" onsubmit="handleSavePedido(event)" class="space-y-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <form id="formPedido" onsubmit="handleSavePedido(event)" class="space-y-3 bg-white p-4 rounded-2xl border shadow-sm">
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Seleccionar Cliente *</label>
-                    <select id="pedidoCliente" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Cliente *</label>
+                    <select id="pedidoCliente" required class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs">
                         <option value="">-- Seleccione un cliente --</option>
                     </select>
                 </div>
-
                 <div>
                     <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Producto *</label>
-                    <select id="pedidoProducto" required onchange="actualizarPrecioProducto()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                    <select id="pedidoProducto" required onchange="actualizarPrecioProducto()" class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs">
                         <option value="">-- Seleccione un producto --</option>
                     </select>
                 </div>
-
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Cantidad *</label>
-                        <input type="number" id="pedidoCantidad" min="1" value="1" required oninput="calcularTotalPedido()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500">
+                        <input type="number" id="pedidoCantidad" min="1" value="1" required oninput="calcularTotalPedido()" class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs">
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Precio Unit. ($) *</label>
-                        <input type="number" id="pedidoPrecio" step="0.01" min="0" placeholder="0.00" required oninput="calcularTotalPedido()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500">
+                        <input type="number" id="pedidoPrecio" step="0.01" min="0" required oninput="calcularTotalPedido()" class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs">
                     </div>
                 </div>
-
-                <!-- Resumen de Totales Calculados -->
-                <div class="bg-cream-100 p-3 rounded-xl border border-cream-300 space-y-1">
-                    <div class="flex justify-between text-xs">
-                        <span class="text-wood-800 font-medium">Total en Dólares:</span>
-                        <span id="resumenTotalUsd" class="font-bold text-emerald-800">$0.00</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-wood-800 font-medium">Total en Bolívares:</span>
-                        <span id="resumenTotalBs" class="font-bold text-amber-900">Bs. 0.00</span>
-                    </div>
+                <div class="bg-cream-100 p-3 rounded-xl border border-cream-300 space-y-1 text-xs">
+                    <div class="flex justify-between font-medium"><span>Total USD:</span> <span id="resumenUsd" class="font-bold text-emerald-800">$0.00</span></div>
+                    <div class="flex justify-between font-medium"><span>Total Bs:</span> <span id="resumenBs" class="font-bold text-amber-900">Bs. 0.00</span></div>
                 </div>
-
-                <button type="submit" id="btnSavePedido" class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition text-xs">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <span>GUARDAR PEDIDO EN GOOGLE SHEETS</span>
-                </button>
+                <button type="submit" id="btnPedido" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg text-xs">GUARDAR Y NOTIFICAR PEDIDO</button>
             </form>
         </section>
 
-        <!-- TAB 2: LISTA DE CLIENTES -->
+        <!-- TAB 2: CLIENTES (Listar, Buscar, Editar) -->
         <section id="tab-clientes" class="tab-content hidden space-y-3">
-            <div class="flex justify-between items-center pb-2 border-b border-slate-200">
-                <div>
-                    <h2 class="text-base font-bold text-wood-900 flex items-center gap-2">
-                        <i class="fa-solid fa-users text-emerald-600"></i> Clientes
-                    </h2>
-                    <p class="text-[11px] text-slate-500">Directorio registrado de clientes y comercios</p>
-                </div>
-                <button onclick="sincronizarDatos()" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-semibold px-2.5 py-1 rounded-lg transition flex items-center gap-1">
-                    <i class="fa-solid fa-arrows-rotate text-[10px]"></i> Sincronizar
-                </button>
+            <div class="flex justify-between items-center pb-2 border-b">
+                <h2 class="text-base font-bold text-wood-900 flex items-center gap-2"><i class="fa-solid fa-users text-emerald-600"></i> Gestión de Clientes</h2>
+                <button onclick="prepararNuevoCliente()" class="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold"><i class="fa-solid fa-plus"></i> Nuevo</button>
             </div>
-
-            <!-- Buscador -->
-            <div class="relative">
-                <input type="text" id="searchInput" oninput="filterClients()" placeholder="Buscar cliente por nombre o cédula..." class="w-full bg-white border border-slate-200 rounded-xl p-2.5 pl-9 text-xs focus:ring-2 focus:ring-emerald-500 shadow-sm">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
-            </div>
-
-            <!-- Listado de Tarjetas de Clientes -->
-            <div id="clientsListContainer" class="space-y-3"></div>
+            <input type="text" id="searchCliente" oninput="filterClientes()" placeholder="Buscar por nombre o cédula..." class="w-full bg-white border rounded-xl p-2.5 text-xs shadow-sm">
+            <div id="listaClientes" class="space-y-3"></div>
         </section>
 
-        <!-- TAB 3: REGISTRAR NUEVO CLIENTE -->
-        <section id="tab-nuevo-cliente" class="tab-content hidden space-y-4">
-            <div class="border-b pb-2 border-slate-200">
-                <h2 class="text-base font-bold text-wood-900 flex items-center gap-2">
-                    <i class="fa-solid fa-user-plus text-emerald-600"></i> Nuevo Cliente
-                </h2>
-                <p class="text-[11px] text-slate-500">Completa los datos para añadir al catálogo en Google Sheets</p>
+        <!-- TAB 3: PRODUCTOS (Listar, Modificar, Crear) -->
+        <section id="tab-productos" class="tab-content hidden space-y-3">
+            <div class="flex justify-between items-center pb-2 border-b">
+                <h2 class="text-base font-bold text-wood-900 flex items-center gap-2"><i class="fa-solid fa-box text-emerald-600"></i> Catálogo de Productos</h2>
+                <button onclick="prepararNuevoProducto()" class="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold"><i class="fa-solid fa-plus"></i> Nuevo</button>
             </div>
-
-            <form id="formNuevoCliente" onsubmit="handleSaveCliente(event)" class="space-y-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Nombre Completo / Empresa *</label>
-                    <input type="text" id="clienteNombre" required placeholder="Ej: Abasto La Gran Esquina C.A." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white">
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Cédula / RIF *</label>
-                    <input type="text" id="clienteCedula" required placeholder="Ej: J-12345678-9 o V-18234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white">
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Teléfono WhatsApp</label>
-                    <input type="tel" id="clienteTelefono" placeholder="Ej: 04141234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white">
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Dirección de Entrega</label>
-                    <textarea id="clienteDireccion" rows="2" placeholder="Ej: Calle 4 con Av. Main, Local #12, Caracas" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white"></textarea>
-                </div>
-
-                <button type="submit" id="btnSaveCliente" class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition text-xs">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <span>GUARDAR CLIENTE EN GOOGLE SHEETS</span>
-                </button>
-            </form>
+            <div id="listaProductos" class="space-y-3"></div>
         </section>
 
         <!-- TAB 4: CALCULADORA -->
         <section id="tab-calculadora" class="tab-content hidden space-y-4">
-            <div class="border-b pb-2 border-slate-200">
-                <h2 class="text-base font-bold text-wood-900 flex items-center gap-2">
-                    <i class="fa-solid fa-calculator text-emerald-600"></i> Calculadora BCV
-                </h2>
-                <p class="text-[11px] text-slate-500">Convierte importes exactos entre USD y Bolívares</p>
-            </div>
-
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Monto en Dólares ($)</label>
-                    <div class="relative">
-                        <span class="absolute left-3.5 top-2.5 text-emerald-600 font-bold">$</span>
-                        <input type="number" id="calcUsdInput" step="0.01" min="0" placeholder="0.00" oninput="convertUsdToBs()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pl-8 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-emerald-500">
-                    </div>
-                </div>
-
-                <div class="flex justify-center my-1 text-slate-400">
-                    <i class="fa-solid fa-arrow-down-up-lock"></i>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Monto en Bolívares (Bs.)</label>
-                    <div class="relative">
-                        <span class="absolute left-3.5 top-2.5 text-amber-800 font-bold">Bs.</span>
-                        <input type="number" id="calcBsInput" step="0.01" min="0" placeholder="0.00" oninput="convertBsToUsd()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pl-11 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-emerald-500">
-                    </div>
-                </div>
-
-                <div class="bg-cream-100 p-3 rounded-xl border border-cream-300 text-center space-y-0.5">
-                    <p class="text-[11px] text-wood-700">Tasa aplicada</p>
-                    <p class="text-sm font-bold text-emerald-800" id="calcTasaApplied">1 USD = 0.00 Bs.</p>
-                </div>
+            <div class="border-b pb-2"><h2 class="text-base font-bold text-wood-900 flex items-center gap-2"><i class="fa-solid fa-calculator text-emerald-600"></i> Calculadora BCV</h2></div>
+            <div class="bg-white p-4 rounded-2xl border space-y-3 text-xs">
+                <div><label class="font-semibold">USD ($)</label><input type="number" id="calcUsd" step="0.01" oninput="convertUsd()" class="w-full border p-2.5 rounded-xl font-bold"></div>
+                <div><label class="font-semibold">Bolívares (Bs.)</label><input type="number" id="calcBs" step="0.01" oninput="convertBs()" class="w-full border p-2.5 rounded-xl font-bold"></div>
             </div>
         </section>
 
     </main>
 
-    <!-- Modal Configuración Apps Script URL -->
-    <div id="configModal" class="fixed inset-0 bg-wood-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl border border-slate-100">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-bold text-wood-900 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-gear text-emerald-600"></i> Conexión Google Sheets
-                </h3>
-                <button onclick="toggleConfigModal()" class="text-slate-400 hover:text-slate-600">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <p class="text-xs text-slate-500 leading-relaxed">
-                URL de la Web App configurada para enlazar con Google Sheets.
-            </p>
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Apps Script Web App URL</label>
-                <input type="url" id="scriptUrlInput" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500">
-            </div>
-            <div class="flex justify-end space-x-2 pt-2">
-                <button onclick="toggleConfigModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600">Cancelar</button>
-                <button onclick="saveApiUrl()" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600">Guardar URL</button>
-            </div>
+    <!-- MODAL FORMULARIO CLIENTE -->
+    <div id="modalCliente" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-3 shadow-2xl">
+            <h3 class="font-bold text-wood-900 text-sm" id="modalClienteTitulo">Registrar / Editar Cliente</h3>
+            <form id="formClienteModal" onsubmit="guardarCliente(event)" class="space-y-2 text-xs">
+                <input type="text" id="mCedula" placeholder="Cédula / RIF (Ej: V-12345678)" required class="w-full border p-2.5 rounded-xl">
+                <input type="text" id="mNombre" placeholder="Nombre completo o Empresa" required class="w-full border p-2.5 rounded-xl">
+                <input type="tel" id="mTelefono" placeholder="Teléfono WhatsApp" class="w-full border p-2.5 rounded-xl">
+                <textarea id="mDireccion" placeholder="Dirección" rows="2" class="w-full border p-2.5 rounded-xl"></textarea>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="cerrarModal('modalCliente')" class="px-3 py-1.5 bg-slate-100 rounded-lg">Cancelar</button>
+                    <button type="submit" class="px-4 py-1.5 bg-emerald-600 text-white rounded-lg font-bold">Guardar</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Feedback Toast -->
-    <div id="toastNotification" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 opacity-0 pointer-events-none w-11/12 max-w-xs">
-        <div id="toastContent" class="bg-wood-900 text-white text-xs py-3 px-4 rounded-xl shadow-2xl flex items-center justify-between border border-amber-800">
-            <div class="flex items-center gap-2.5">
-                <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
-                <span id="toastMessage">Operación realizada con éxito</span>
-            </div>
+    <!-- MODAL FORMULARIO PRODUCTO -->
+    <div id="modalProducto" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-3 shadow-2xl">
+            <h3 class="font-bold text-wood-900 text-sm" id="modalProductoTitulo">Registrar / Modificar Producto</h3>
+            <form id="formProductoModal" onsubmit="guardarProducto(event)" class="space-y-2 text-xs">
+                <input type="text" id="pCodigo" placeholder="Código (Ej: 1, 2...)" required class="w-full border p-2.5 rounded-xl">
+                <input type="text" id="pNombre" placeholder="Nombre del producto" required class="w-full border p-2.5 rounded-xl">
+                <input type="number" id="pPrecio" step="0.01" placeholder="Precio en $" required class="w-full border p-2.5 rounded-xl">
+                <input type="number" id="pStock" placeholder="Stock" class="w-full border p-2.5 rounded-xl">
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="cerrarModal('modalProducto')" class="px-3 py-1.5 bg-slate-100 rounded-lg">Cancelar</button>
+                    <button type="submit" class="px-4 py-1.5 bg-emerald-600 text-white rounded-lg font-bold">Guardar</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar -->
-    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-slate-200 px-3 py-2 z-30 flex justify-around items-center shadow-lg">
-        <button onclick="switchTab('pedido')" id="nav-pedido" class="nav-btn flex flex-col items-center gap-0.5 text-emerald-700 font-semibold text-[10px] transition">
-            <i class="fa-solid fa-cart-shopping text-base"></i>
-            <span>Pedido</span>
-        </button>
-        <button onclick="switchTab('clientes')" id="nav-clientes" class="nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 font-medium text-[10px] transition">
-            <i class="fa-solid fa-users text-base"></i>
-            <span>Clientes</span>
-        </button>
-        <button onclick="switchTab('nuevo-cliente')" id="nav-nuevo-cliente" class="nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 font-medium text-[10px] transition">
-            <i class="fa-solid fa-user-plus text-base"></i>
-            <span>Nuevo</span>
-        </button>
-        <button onclick="switchTab('calculadora')" id="nav-calculadora" class="nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 font-medium text-[10px] transition">
-            <i class="fa-solid fa-calculator text-base"></i>
-            <span>Calculadora</span>
-        </button>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 transition-all opacity-0 pointer-events-none w-11/12 max-w-xs bg-wood-900 text-white text-xs py-3 px-4 rounded-xl shadow-2xl text-center">Operación exitosa</div>
+
+    <!-- Navigation Bar -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t px-3 py-2 z-30 flex justify-around items-center shadow-lg text-[10px]">
+        <button onclick="switchTab('pedido')" id="nav-pedido" class="nav-btn flex flex-col items-center text-emerald-700 font-semibold"><i class="fa-solid fa-cart-shopping text-base"><span>Pedido</span></i></button>
+        <button onclick="switchTab('clientes')" id="nav-clientes" class="nav-btn flex flex-col items-center text-slate-400"><i class="fa-solid fa-users text-base"><span>Clientes</span></i></button>
+        <button onclick="switchTab('productos')" id="nav-productos" class="nav-btn flex flex-col items-center text-slate-400"><i class="fa-solid fa-box text-base"><span>Productos</span></i></button>
+        <button onclick="switchTab('calculadora')" id="nav-calculadora" class="nav-btn flex flex-col items-center text-slate-400"><i class="fa-solid fa-calculator text-base"><span>Calculadora</span></i></button>
     </nav>
 
-    <!-- JavaScript Application Logic -->
+    <!-- Script de la App -->
     <script>
-        function handleLogoError(img) {
-            const currentSrc = img.getAttribute('src');
-            if (currentSrc === 'logo.jpeg') { img.src = 'logo.jpg'; }
-            else if (currentSrc === 'logo.jpg') { img.src = 'logo.png'; }
-            else {
-                img.onerror = null; 
-                img.parentNode.innerHTML = `<div class="w-full h-full bg-emerald-800 flex items-center justify-center text-amber-200 font-bold text-xs"><i class="fa-solid fa-cheese text-amber-300 text-lg"></i></div>`;
-            }
-        }
-
-        const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbzdqQaLDLPpZN4EcNpkMovCik9JbvAZJTZzSf6hGpFu_cDT-63QXoY92kQwqEmcLcoO4Q/exec";
-        
-        let webAppUrl = localStorage.getItem('telita_script_url') || DEFAULT_URL;
-        let tasaBCV = parseFloat(localStorage.getItem('telita_tasa_bcv')) || 45.50;
-        
-        // Memoria local de respaldo
-        let clientesData = JSON.parse(localStorage.getItem('telita_clientes')) || [];
-        let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [];
+        const WEB_URL = "https://script.google.com/macros/s/AKfycbzdqQaLDLPpZN4EcNpkMovCik9JbvAZJTZzSf6hGpFu_cDT-63QXoY92kQwqEmcLcoO4Q/exec";
+        let tasaBCV = 45.50;
+        let clientesData = [];
+        let productosData = [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            updateTasaDisplay();
-            updateApiStatusUI();
-            renderClientsList(clientesData);
-            renderSelects();
-
-            fetchTasaBCV();
-            sincronizarDatos(); // Se conecta con Google Sheets al iniciar
+            sincronizarDatos();
+            fetchBCV();
         });
 
-        async function fetchTasaBCV() {
+        async function fetchBCV() {
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 4000);
-                const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { signal: controller.signal });
-                clearTimeout(timeoutId);
+                const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
                 const data = await res.json();
                 if (data && data.promedio) {
                     tasaBCV = parseFloat(data.promedio);
-                    localStorage.setItem('telita_tasa_bcv', tasaBCV);
+                    document.getElementById('tasaBCVDisplay').textContent = `${tasaBCV.toFixed(2)} Bs/$`;
                 }
-            } catch (err) {
-                console.log('Usando tasa local');
+            } catch(e) {
+                document.getElementById('tasaBCVDisplay').textContent = `${tasaBCV.toFixed(2)} Bs/$`;
             }
-            updateTasaDisplay();
-            calcularTotalPedido();
-        }
-
-        function updateTasaDisplay() {
-            document.getElementById('tasaBCVDisplay').textContent = `${tasaBCV.toFixed(2)} Bs/$`;
-            document.getElementById('calcTasaApplied').textContent = `1 USD = ${tasaBCV.toFixed(2)} Bs.`;
         }
 
         function editTasaManual() {
-            const nuevaTasa = prompt('Ingrese la tasa BCV (Bs/$):', tasaBCV);
-            if (nuevaTasa && !isNaN(nuevaTasa) && parseFloat(nuevaTasa) > 0) {
-                tasaBCV = parseFloat(nuevaTasa);
-                localStorage.setItem('telita_tasa_bcv', tasaBCV);
-                updateTasaDisplay();
-                calcularTotalPedido();
-                showToast(`Tasa ajustada a ${tasaBCV.toFixed(2)}`, 'success');
+            let t = prompt("Ingrese tasa BCV:", tasaBCV);
+            if(t && !isNaN(t)) { tasaBCV = parseFloat(t); document.getElementById('tasaBCVDisplay').textContent = `${tasaBCV.toFixed(2)} Bs/$`; }
+        }
+
+        function sincronizarDatos() {
+            showToast("Sincronizando con base de datos...");
+            const scriptId = 'jsonp-loader';
+            if(document.getElementById(scriptId)) document.getElementById(scriptId).remove();
+
+            window.cbData = function(res) {
+                if(res) {
+                    clientesData = res.clientes || [];
+                    productosData = res.productos || [];
+                    renderSelects();
+                    renderClientesUI(clientesData);
+                    renderProductosUI(productosData);
+                    showToast("¡Datos actualizados!");
+                }
             }
-        }
 
-        function actualizarPrecioProducto() {
-            const selectProd = document.getElementById('pedidoProducto');
-            const nombreProd = selectProd.value;
-            const productoEncontrado = productosData.find(p => p.nombre === nombreProd);
-            if (productoEncontrado) {
-                document.getElementById('pedidoPrecio').value = productoEncontrado.precio;
-                calcularTotalPedido();
-            }
-        }
-
-        function calcularTotalPedido() {
-            const cant = parseFloat(document.getElementById('pedidoCantidad').value) || 0;
-            const precio = parseFloat(document.getElementById('pedidoPrecio').value) || 0;
-            const totalUsd = cant * precio;
-            const totalBs = totalUsd * tasaBCV;
-
-            document.getElementById('resumenTotalUsd').textContent = `$${totalUsd.toFixed(2)}`;
-            document.getElementById('resumenTotalBs').textContent = `Bs. ${totalBs.toFixed(2)}`;
-        }
-
-        function convertUsdToBs() {
-            const usd = parseFloat(document.getElementById('calcUsdInput').value) || 0;
-            document.getElementById('calcBsInput').value = usd > 0 ? (usd * tasaBCV).toFixed(2) : '';
-        }
-
-        function convertBsToUsd() {
-            const bs = parseFloat(document.getElementById('calcBsInput').value) || 0;
-            document.getElementById('calcUsdInput').value = (bs > 0 && tasaBCV > 0) ? (bs / tasaBCV).toFixed(2) : '';
-        }
-
-        function updateApiStatusUI() {
-            const icon = document.getElementById('apiStatusIcon');
-            icon.className = webAppUrl ? "fa-solid fa-wifi text-emerald-300 text-xs" : "fa-solid fa-plug text-amber-300 text-xs animate-pulse";
-        }
-
-        function toggleConfigModal() {
-            const modal = document.getElementById('configModal');
-            document.getElementById('scriptUrlInput').value = webAppUrl;
-            modal.classList.toggle('hidden');
-        }
-
-        function saveApiUrl() {
-            const url = document.getElementById('scriptUrlInput').value.trim();
-            webAppUrl = url || DEFAULT_URL;
-            localStorage.setItem('telita_script_url', webAppUrl);
-            updateApiStatusUI();
-            toggleConfigModal();
-            showToast('URL guardada correctamente', 'success');
-            sincronizarDatos();
+            let s = document.createElement('script');
+            s.id = scriptId;
+            s.src = `${WEB_URL}?action=getData&callback=cbData`;
+            document.body.appendChild(s);
         }
 
         function renderSelects() {
-            const selectCliente = document.getElementById('pedidoCliente');
-            selectCliente.innerHTML = '<option value="">-- Seleccione un cliente --</option>' + 
+            let cSelect = document.getElementById('pedidoCliente');
+            cSelect.innerHTML = '<option value="">-- Seleccione un cliente --</option>' + 
                 clientesData.map(c => `<option value="${c.cedula}" data-nombre="${c.nombre}">${c.nombre} (${c.cedula})</option>`).join('');
 
-            const selectProd = document.getElementById('pedidoProducto');
-            selectProd.innerHTML = '<option value="">-- Seleccione un producto --</option>' + 
+            let pSelect = document.getElementById('pedidoProducto');
+            pSelect.innerHTML = '<option value="">-- Seleccione un producto --</option>' + 
                 productosData.map(p => `<option value="${p.nombre}">${p.nombre} ($${p.precio})</option>`).join('');
         }
 
-        function renderClientsList(data) {
-            const container = document.getElementById('clientsListContainer');
-            if (!data || data.length === 0) {
-                container.innerHTML = `<div class="bg-white rounded-xl p-8 text-center text-slate-400 border border-dashed border-slate-200"><i class="fa-solid fa-users-slash text-3xl mb-2 text-slate-300"></i><p class="text-xs">No hay clientes registrados en la base de datos.</p></div>`;
-                return;
-            }
-            container.innerHTML = data.map(c => `
-                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="font-bold text-wood-900 text-sm leading-tight">${c.nombre}</h3>
-                            <p class="text-[11px] text-emerald-700 font-semibold mt-0.5"><i class="fa-solid fa-id-card text-[10px]"></i> ${c.cedula || 'Sin cédula'}</p>
-                        </div>
-                        ${c.telefono ? `<a href="https://wa.me/${c.telefono.replace(/\D/g,'')}" target="_blank" class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition shadow-sm"><i class="fa-brands fa-whatsapp text-sm"></i></a>` : ''}
+        function renderClientesUI(data) {
+            let cont = document.getElementById('listaClientes');
+            if(data.length === 0) { cont.innerHTML = '<p class="text-center text-xs text-slate-400 p-4">No hay clientes.</p>'; return; }
+            cont.innerHTML = data.map(c => `
+                <div class="bg-white p-3 rounded-2xl border shadow-sm flex justify-between items-center text-xs">
+                    <div>
+                        <h3 class="font-bold text-wood-900">${c.nombre}</h3>
+                        <p class="text-emerald-700 font-semibold">${c.cedula}</p>
+                        <p class="text-slate-500">${c.telefono || 'Sin teléfono'} - ${c.direccion || ''}</p>
                     </div>
-                    ${c.telefono ? `<p class="text-xs text-slate-600 flex items-center gap-1.5"><i class="fa-solid fa-phone text-slate-400 text-[10px]"></i> ${c.telefono}</p>` : ''}
-                    ${c.direccion ? `<p class="text-xs text-slate-500 flex items-start gap-1.5 pt-1 border-t border-slate-100"><i class="fa-solid fa-location-dot text-slate-400 text-[10px] mt-0.5"></i> <span>${c.direccion}</span></p>` : ''}
+                    <button onclick='editarCliente(${JSON.stringify(c)})' class="bg-amber-100 text-amber-900 p-2 rounded-xl"><i class="fa-solid fa-pen"></i></button>
                 </div>
             `).join('');
         }
 
-        function filterClients() {
-            const query = document.getElementById('searchInput').value.toLowerCase().trim();
-            const filtered = clientesData.filter(c => 
-                (c.nombre && c.nombre.toLowerCase().includes(query)) || 
-                (c.cedula && c.cedula.toLowerCase().includes(query))
-            );
-            renderClientsList(filtered);
+        function renderProductosUI(data) {
+            let cont = document.getElementById('listaProductos');
+            if(data.length === 0) { cont.innerHTML = '<p class="text-center text-xs text-slate-400 p-4">No hay productos.</p>'; return; }
+            cont.innerHTML = data.map(p => `
+                <div class="bg-white p-3 rounded-2xl border shadow-sm flex justify-between items-center text-xs">
+                    <div>
+                        <h3 class="font-bold text-wood-900">${p.nombre} (Cód: ${p.codigo})</h3>
+                        <p class="text-emerald-700 font-bold">$${p.precio} USD</p>
+                    </div>
+                    <button onclick='editarProducto(${JSON.stringify(p)})' class="bg-amber-100 text-amber-900 p-2 rounded-xl"><i class="fa-solid fa-pen"></i></button>
+                </div>
+            `).join('');
         }
 
-        // Sincronización JSONP pura y directa con Google Sheets
-        function sincronizarDatos() {
-            if (!webAppUrl) return;
-            showToast('Consultando base de datos...', 'success');
-
-            const scriptId = 'jsonp-script-loader';
-            const oldScript = document.getElementById(scriptId);
-            if (oldScript) oldScript.remove();
-
-            window.gelDataCallback = function(data) {
-                if (data) {
-                    if (Array.isArray(data.clientes)) {
-                        clientesData = data.clientes;
-                        localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
-                        renderClientsList(clientesData);
-                    }
-                    if (Array.isArray(data.productos)) {
-                        productosData = data.productos;
-                        localStorage.setItem('telita_productos', JSON.stringify(productosData));
-                    }
-                    renderSelects(); // Actualiza automáticamente los desplegables de pedidos
-                    showToast('¡Datos actualizados desde Google Sheets!', 'success');
-                }
-            };
-
-            const script = document.createElement('script');
-            script.id = scriptId;
-            script.src = `${webAppUrl}?action=getData&callback=gelDataCallback`;
-            script.onerror = function() {
-                showToast('No se pudo conectar a la base', 'error');
-            };
-            document.body.appendChild(script);
+        function filterClientes() {
+            let q = document.getElementById('searchCliente').value.toLowerCase();
+            let filtered = clientesData.filter(c => c.nombre.toLowerCase().includes(q) || c.cedula.toLowerCase().includes(q));
+            renderClientesUI(filtered);
         }
 
-        async function handleSaveCliente(e) {
+        function actualizarPrecioProducto() {
+            let prodName = document.getElementById('pedidoProducto').value;
+            let found = productosData.find(p => p.nombre === prodName);
+            if(found) { document.getElementById('pedidoPrecio').value = found.precio; calcularTotalPedido(); }
+        }
+
+        function calcularTotalPedido() {
+            let cant = parseFloat(document.getElementById('pedidoCantidad').value) || 0;
+            let price = parseFloat(document.getElementById('pedidoPrecio').value) || 0;
+            let totalU = cant * price;
+            let totalB = totalU * tasaBCV;
+            document.getElementById('resumenUsd').textContent = `$${totalU.toFixed(2)}`;
+            document.getElementById('resumenBs').textContent = `Bs. ${totalB.toFixed(2)}`;
+        }
+
+        // Modales y Edición
+        function prepararNuevoCliente() {
+            document.getElementById('formClienteModal').reset();
+            document.getElementById('mCedula').disabled = false;
+            document.getElementById('modalCliente').classList.remove('hidden');
+        }
+        function editarCliente(c) {
+            document.getElementById('mCedula').value = c.cedula;
+            document.getElementById('mCedula').disabled = true; // No modificar llave primaria
+            document.getElementById('mNombre').value = c.nombre;
+            document.getElementById('mTelefono').value = c.telefono;
+            document.getElementById('mDireccion').value = c.direccion;
+            document.getElementById('modalCliente').classList.remove('hidden');
+        }
+
+        function prepararNuevoProducto() {
+            document.getElementById('formProductoModal').reset();
+            document.getElementById('pCodigo').disabled = false;
+            document.getElementById('modalProducto').classList.remove('hidden');
+        }
+        function editarProducto(p) {
+            document.getElementById('pCodigo').value = p.codigo;
+            document.getElementById('pCodigo').disabled = true;
+            document.getElementById('pNombre').value = p.nombre;
+            document.getElementById('pPrecio').value = p.precio;
+            document.getElementById('pStock').value = p.stock;
+            document.getElementById('modalProducto').classList.remove('hidden');
+        }
+
+        function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        async function guardarCliente(e) {
             e.preventDefault();
-            const nombre = document.getElementById('clienteNombre').value.trim();
-            const cedula = document.getElementById('clienteCedula').value.trim();
-            const telefono = document.getElementById('clienteTelefono').value.trim();
-            const direccion = document.getElementById('clienteDireccion').value.trim();
+            let params = new URLSearchParams({
+                action: 'guardarCliente',
+                cedula: document.getElementById('mCedula').value,
+                nombre: document.getElementById('mNombre').value,
+                telefono: document.getElementById('mTelefono').value,
+                direccion: document.getElementById('mDireccion').value
+            });
+            await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
+            cerrarModal('modalCliente');
+            showToast("¡Cliente guardado en Google Sheets!");
+            setTimeout(sincronizarDatos, 1500);
+        }
 
-            const clienteExistente = clientesData.find(c => String(c.cedula).toLowerCase() === cedula.toLowerCase());
-            if (clienteExistente) {
-                showToast('¡El cliente ya existe en la base de datos!', 'error');
-                return;
-            }
-
-            const btn = document.getElementById('btnSaveCliente');
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>GUARDANDO...</span>`;
-
-            const params = new URLSearchParams();
-            params.append('action', 'nuevoCliente');
-            params.append('nombre', nombre);
-            params.append('cedula', cedula);
-            params.append('telefono', telefono);
-            params.append('direccion', direccion);
-
-            try {
-                await fetch(webAppUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: params
-                });
-            } catch (err) {
-                console.log("Envío completado");
-            } finally {
-                clientesData.unshift({ cedula, nombre, telefono, direccion });
-                localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
-                showToast('¡Cliente guardado con éxito!', 'success');
-                document.getElementById('formNuevoCliente').reset();
-                renderClientsList(clientesData);
-                renderSelects();
-                switchTab('clientes');
-                
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR CLIENTE EN GOOGLE SHEETS</span>`;
-                setTimeout(sincronizarDatos, 1500); // Refresca automáticamente desde la base de datos
-            }
+        async function guardarProducto(e) {
+            e.preventDefault();
+            let params = new URLSearchParams({
+                action: 'guardarProducto',
+                codigo: document.getElementById('pCodigo').value,
+                nombre: document.getElementById('pNombre').value,
+                precio: document.getElementById('pPrecio').value,
+                stock: document.getElementById('pStock').value || 0
+            });
+            await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
+            cerrarModal('modalProducto');
+            showToast("¡Producto guardado en Google Sheets!");
+            setTimeout(sincronizarDatos, 1500);
         }
 
         async function handleSavePedido(e) {
             e.preventDefault();
-            const selectCliente = document.getElementById('pedidoCliente');
-            const cedulaCliente = selectCliente.value;
-            const optionSelected = selectCliente.options[selectCliente.selectedIndex];
-            const nombreCliente = optionSelected ? optionSelected.getAttribute('data-nombre') : '';
-            
-            const producto = document.getElementById('pedidoProducto').value;
-            const cantidad = document.getElementById('pedidoCantidad').value;
-            const precio = document.getElementById('pedidoPrecio').value;
-            const totalUsd = (cantidad * precio).toFixed(2);
-            const totalBs = (totalUsd * tasaBCV).toFixed(2);
-            const fecha = new Date().toLocaleString();
-            const descripcionProductos = `${cantidad}x ${producto} ($${precio} c/u)`;
+            let selC = document.getElementById('pedidoCliente');
+            let cedula = selC.value;
+            let nombre = selC.options[selC.selectedIndex].getAttribute('data-nombre');
+            let prod = document.getElementById('pedidoProducto').value;
+            let cant = document.getElementById('pedidoCantidad').value;
+            let precio = document.getElementById('pedidoPrecio').value;
 
-            const btn = document.getElementById('btnSavePedido');
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>GUARDANDO Y NOTIFICANDO...</span>`;
-
-            const params = new URLSearchParams();
-            params.append('action', 'nuevoPedido');
-            params.append('cedulaCliente', cedulaCliente);
-            params.append('nombreCliente', nombreCliente);
-            params.append('productos', descripcionProductos);
-            params.append('totalUsd', totalUsd);
-            params.append('totalBs', totalBs);
-            params.append('fecha', fecha);
-
-            try {
-                await fetch(webAppUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: params
-                });
-            } catch (err) {
-                console.log("Envío pedido completado");
-            } finally {
-                showToast('¡Pedido registrado y enviado a Telegram!', 'success');
-                document.getElementById('formNuevoPedido').reset();
-                document.getElementById('resumenTotalUsd').textContent = '$0.00';
-                document.getElementById('resumenTotalBs').textContent = 'Bs. 0.00';
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR PEDIDO EN GOOGLE SHEETS</span>`;
-            }
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.className = "nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 font-medium text-[10px] transition";
+            let params = new URLSearchParams({
+                action: 'nuevoPedido',
+                cedulaCliente: cedula,
+                nombreCliente: nombre,
+                productos: `${cant}x ${prod} ($${precio} c/u)`,
+                totalUsd: (cant * precio).toFixed(2),
+                totalBs: ((cant * precio) * tasaBCV).toFixed(2),
+                fecha: new Date().toLocaleString()
             });
-            document.getElementById(`nav-${tabId}`).className = "nav-btn flex flex-col items-center gap-0.5 text-emerald-700 font-semibold text-[10px] transition";
+
+            await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
+            showToast("¡Pedido registrado y enviado a Telegram!");
+            document.getElementById('formPedido').reset();
+            document.getElementById('resumenUsd').textContent = "$0.00";
+            document.getElementById('resumenBs').textContent = "Bs. 0.00";
         }
 
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toastNotification');
-            const msgEl = document.getElementById('toastMessage');
-            const iconEl = document.getElementById('toastIcon');
-            msgEl.textContent = message;
-            iconEl.className = type === 'success' ? "fa-solid fa-circle-check text-emerald-400 text-base" : "fa-solid fa-circle-exclamation text-rose-400 text-base";
-            toast.classList.remove('opacity-0', 'pointer-events-none');
-            setTimeout(() => { toast.classList.add('opacity-0', 'pointer-events-none'); }, 3000);
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(b => b.className = "nav-btn flex flex-col items-center text-slate-400");
+            document.getElementById(`nav-${tab}`).className = "nav-btn flex flex-col items-center text-emerald-700 font-semibold";
+        }
+
+        function showToast(msg) {
+            let t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => t.classList.add('opacity-0', 'pointer-events-none'), 3000);
+        }
+
+        function convertUsd() {
+            let u = parseFloat(document.getElementById('calcUsd').value) || 0;
+            document.getElementById('calcBs').value = (u * tasaBCV).toFixed(2);
+        }
+        function convertBs() {
+            let b = parseFloat(document.getElementById('calcBs').value) || 0;
+            document.getElementById('calcUsdInput') ? '' : document.getElementById('calcUsd').value = (b / tasaBCV).toFixed(2);
         }
     </script>
 </body>
