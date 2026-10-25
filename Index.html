@@ -477,6 +477,13 @@
             const telefono = document.getElementById('clienteTelefono').value.trim();
             const direccion = document.getElementById('clienteDireccion').value.trim();
 
+            // Validación de cliente existente por Cédula / RIF
+            const clienteExistente = clientesData.find(c => c.cedula.toLowerCase() === cedula.toLowerCase());
+            if (clienteExistente) {
+                showToast('¡El cliente ya existe en la base de datos!', 'error');
+                return;
+            }
+
             const btn = document.getElementById('btnSaveCliente');
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>GUARDANDO...</span>`;
@@ -495,16 +502,17 @@
                     body: params
                 });
 
+                // Como no-cors no da error si la red envía la petición, asumimos éxito inmediato en UI
                 clientesData.unshift({ cedula, nombre, telefono, direccion });
                 localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
-                showToast('Cliente guardado con éxito', 'success');
+                showToast('¡Cliente guardado con éxito!', 'success');
                 document.getElementById('formNuevoCliente').reset();
                 renderClientsList(clientesData);
                 renderSelects();
                 switchTab('clientes');
                 setTimeout(loadDataFromSheets, 1500);
             } catch (err) {
-                showToast('Error al guardar cliente', 'error');
+                showToast('Error de red al intentar guardar', 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR CLIENTE EN GOOGLE SHEETS</span>`;
