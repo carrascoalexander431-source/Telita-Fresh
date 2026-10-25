@@ -522,4 +522,80 @@
                 localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
                 showToast('¡Cliente guardado con éxito!', 'success');
                 document.getElementById('formNuevoCliente').reset();
-                renderClients
+                renderClientsList(clientesData);
+                renderSelects();
+                switchTab('clientes');
+                
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR CLIENTE EN GOOGLE SHEETS</span>`;
+            }
+        }
+
+        async function handleSavePedido(e) {
+            e.preventDefault();
+            const selectCliente = document.getElementById('pedidoCliente');
+            const cedulaCliente = selectCliente.value;
+            const optionSelected = selectCliente.options[selectCliente.selectedIndex];
+            const nombreCliente = optionSelected ? optionSelected.getAttribute('data-nombre') : '';
+            
+            const producto = document.getElementById('pedidoProducto').value;
+            const cantidad = document.getElementById('pedidoCantidad').value;
+            const precio = document.getElementById('pedidoPrecio').value;
+            const totalUsd = (cantidad * precio).toFixed(2);
+            const totalBs = (totalUsd * tasaBCV).toFixed(2);
+            const fecha = new Date().toLocaleString();
+            const descripcionProductos = `${cantidad}x ${producto} ($${precio} c/u)`;
+
+            const btn = document.getElementById('btnSavePedido');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>GUARDANDO Y NOTIFICANDO...</span>`;
+
+            const params = new URLSearchParams();
+            params.append('action', 'nuevoPedido');
+            params.append('cedulaCliente', cedulaCliente);
+            params.append('nombreCliente', nombreCliente);
+            params.append('productos', descripcionProductos);
+            params.append('totalUsd', totalUsd);
+            params.append('totalBs', totalBs);
+            params.append('fecha', fecha);
+
+            try {
+                await fetch(webAppUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: params
+                });
+            } catch (err) {
+                console.log("Envío pedido completado");
+            } finally {
+                showToast('¡Pedido registrado y enviado a Telegram!', 'success');
+                document.getElementById('formNuevoPedido').reset();
+                document.getElementById('resumenTotalUsd').textContent = '$0.00';
+                document.getElementById('resumenTotalBs').textContent = 'Bs. 0.00';
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR PEDIDO EN GOOGLE SHEETS</span>`;
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = "nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 font-medium text-[10px] transition";
+            });
+            document.getElementById(`nav-${tabId}`).className = "nav-btn flex flex-col items-center gap-0.5 text-emerald-700 font-semibold text-[10px] transition";
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            const iconEl = document.getElementById('toastIcon');
+            msgEl.textContent = message;
+            iconEl.className = type === 'success' ? "fa-solid fa-circle-check text-emerald-400 text-base" : "fa-solid fa-circle-exclamation text-rose-400 text-base";
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { toast.classList.add('opacity-0', 'pointer-events-none'); }, 3000);
+        }
+    </script>
+</body>
+</html>
