@@ -126,7 +126,7 @@
     <!-- MODAL FORMULARIO CLIENTE -->
     <div id="modalCliente" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-3 shadow-2xl">
-            <h3 class="font-bold text-wood-900 text-sm" id="modalClienteTitulo">Registrar / Editar Cliente</h3>
+            <h3 class="font-bold text-wood-900 text-sm">Registrar / Editar Cliente</h3>
             <form id="formClienteModal" onsubmit="guardarCliente(event)" class="space-y-2 text-xs">
                 <input type="text" id="mCedula" placeholder="Cédula / RIF (Ej: V-12345678)" required class="w-full border p-2.5 rounded-xl">
                 <input type="text" id="mNombre" placeholder="Nombre completo o Empresa" required class="w-full border p-2.5 rounded-xl">
@@ -143,7 +143,7 @@
     <!-- MODAL FORMULARIO PRODUCTO -->
     <div id="modalProducto" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-3 shadow-2xl">
-            <h3 class="font-bold text-wood-900 text-sm" id="modalProductoTitulo">Registrar / Modificar Producto</h3>
+            <h3 class="font-bold text-wood-900 text-sm">Registrar / Modificar Producto</h3>
             <form id="formProductoModal" onsubmit="guardarProducto(event)" class="space-y-2 text-xs">
                 <input type="text" id="pCodigo" placeholder="Código (Ej: 1, 2...)" required class="w-full border p-2.5 rounded-xl">
                 <input type="text" id="pNombre" placeholder="Nombre del producto" required class="w-full border p-2.5 rounded-xl">
@@ -160,7 +160,7 @@
     <!-- Toast Notification -->
     <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 transition-all opacity-0 pointer-events-none w-11/12 max-w-xs bg-wood-900 text-white text-xs py-3 px-4 rounded-xl shadow-2xl text-center">Operación exitosa</div>
 
-    <!-- Navigation Bar (Solo Íconos Limpios) -->
+    <!-- Navigation Bar -->
     <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t py-3 px-6 z-30 flex justify-between items-center shadow-lg">
         <button onclick="switchTab('pedido')" id="nav-pedido" title="Pedidos" class="nav-btn text-emerald-700 text-xl transition transform hover:scale-110">
             <i class="fa-solid fa-cart-shopping"></i>
@@ -176,7 +176,6 @@
         </button>
     </nav>
 
-    <!-- Script de la App -->
     <script>
         const WEB_URL = "https://script.google.com/macros/s/AKfycbzdqQaLDLPpZN4EcNpkMovCik9JbvAZJTZzSf6hGpFu_cDT-63QXoY92kQwqEmcLcoO4Q/exec";
         let tasaBCV = 45.50;
@@ -248,7 +247,10 @@
                         <p class="text-emerald-700 font-semibold">${c.cedula}</p>
                         <p class="text-slate-500">${c.telefono || 'Sin teléfono'} - ${c.direccion || ''}</p>
                     </div>
-                    <button onclick='editarCliente(${JSON.stringify(c)})' class="bg-amber-100 text-amber-900 p-2 rounded-xl"><i class="fa-solid fa-pen"></i></button>
+                    <div class="flex gap-1.5">
+                        <button onclick='editarCliente(${JSON.stringify(c)})' class="bg-amber-100 text-amber-900 p-2 rounded-xl" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick='eliminarCliente("${c.cedula}", "${c.nombre}")' class="bg-rose-100 text-rose-700 p-2 rounded-xl" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -262,7 +264,10 @@
                         <h3 class="font-bold text-wood-900">${p.nombre} (Cód: ${p.codigo})</h3>
                         <p class="text-emerald-700 font-bold">$${p.precio} USD</p>
                     </div>
-                    <button onclick='editarProducto(${JSON.stringify(p)})' class="bg-amber-100 text-amber-900 p-2 rounded-xl"><i class="fa-solid fa-pen"></i></button>
+                    <div class="flex gap-1.5">
+                        <button onclick='editarProducto(${JSON.stringify(p)})' class="bg-amber-100 text-amber-900 p-2 rounded-xl" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick='eliminarProducto("${p.codigo}", "${p.nombre}")' class="bg-rose-100 text-rose-700 p-2 rounded-xl" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -288,7 +293,6 @@
             document.getElementById('resumenBs').textContent = `Bs. ${totalB.toFixed(2)}`;
         }
 
-        // Modales y Edición
         function prepararNuevoCliente() {
             document.getElementById('formClienteModal').reset();
             document.getElementById('mCedula').disabled = false;
@@ -330,8 +334,17 @@
             });
             await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
             cerrarModal('modalCliente');
-            showToast("¡Cliente guardado en Google Sheets!");
+            showToast("¡Cliente guardado!");
             setTimeout(sincronizarDatos, 1500);
+        }
+
+        async function eliminarCliente(cedula, nombre) {
+            if(confirm(`¿Estás seguro de eliminar al cliente: ${nombre}?`)) {
+                let params = new URLSearchParams({ action: 'eliminarCliente', cedula: cedula });
+                await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
+                showToast("Cliente eliminado");
+                setTimeout(sincronizarDatos, 1500);
+            }
         }
 
         async function guardarProducto(e) {
@@ -345,8 +358,17 @@
             });
             await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
             cerrarModal('modalProducto');
-            showToast("¡Producto guardado en Google Sheets!");
+            showToast("¡Producto guardado!");
             setTimeout(sincronizarDatos, 1500);
+        }
+
+        async function eliminarProducto(codigo, nombre) {
+            if(confirm(`¿Estás seguro de eliminar el producto: ${nombre}?`)) {
+                let params = new URLSearchParams({ action: 'eliminarProducto', codigo: codigo });
+                await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
+                showToast("Producto eliminado");
+                setTimeout(sincronizarDatos, 1500);
+            }
         }
 
         async function handleSavePedido(e) {
@@ -369,7 +391,7 @@
             });
 
             await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
-            showToast("¡Pedido registrado y enviado a Telegram!");
+            showToast("¡Pedido registrado y notificado!");
             document.getElementById('formPedido').reset();
             document.getElementById('resumenUsd').textContent = "$0.00";
             document.getElementById('resumenBs').textContent = "Bs. 0.00";
