@@ -318,19 +318,9 @@
         let webAppUrl = localStorage.getItem('telita_script_url') || DEFAULT_URL;
         let tasaBCV = parseFloat(localStorage.getItem('telita_tasa_bcv')) || 45.50;
         
-        // Inicializamos con respaldo local para que las listas nunca estén vacías al abrir
-        let clientesData = JSON.parse(localStorage.getItem('telita_clientes')) || [
-            {cedula: "V-12835862", nombre: "Alexander Carrasco", telefono: "04129609641", direccion: "Cur"}
-        ];
-        let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [
-            {codigo: "1", nombre: "Queso Crema", precio: 5, stock: 0},
-            {codigo: "2", nombre: "Pote Queso Arepero", precio: 5, stock: 0},
-            {codigo: "3", nombre: "Masa Facil la Economica", precio: 2, stock: 0},
-            {codigo: "4", nombre: "Suero", precio: 2, stock: 0},
-            {codigo: "5", nombre: "Facilistas Kaldhini", precio: 3, stock: 0},
-            {codigo: "6", nombre: "Combo 1", precio: 10, stock: 0},
-            {codigo: "7", nombre: "Combo 2", precio: 14, stock: 0}
-        ];
+        // Memoria local de respaldo
+        let clientesData = JSON.parse(localStorage.getItem('telita_clientes')) || [];
+        let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [];
 
         document.addEventListener('DOMContentLoaded', () => {
             updateTasaDisplay();
@@ -339,24 +329,22 @@
             renderSelects();
 
             fetchTasaBCV();
-            sincronizarDatos(); // Consulta automática mediante Proxy CORS al iniciar
+            sincronizarDatos(); // Se conecta con Google Sheets al iniciar
         });
 
         async function fetchTasaBCV() {
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 4000);
-                
                 const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { signal: controller.signal });
                 clearTimeout(timeoutId);
-                
                 const data = await res.json();
                 if (data && data.promedio) {
                     tasaBCV = parseFloat(data.promedio);
                     localStorage.setItem('telita_tasa_bcv', tasaBCV);
                 }
             } catch (err) {
-                console.log('Usando tasa almacenada localmente');
+                console.log('Usando tasa local');
             }
             updateTasaDisplay();
             calcularTotalPedido();
@@ -442,7 +430,7 @@
         function renderClientsList(data) {
             const container = document.getElementById('clientsListContainer');
             if (!data || data.length === 0) {
-                container.innerHTML = `<div class="bg-white rounded-xl p-8 text-center text-slate-400 border border-dashed border-slate-200"><i class="fa-solid fa-users-slash text-3xl mb-2 text-slate-300"></i><p class="text-xs">No hay clientes registrados.</p></div>`;
+                container.innerHTML = `<div class="bg-white rounded-xl p-8 text-center text-slate-400 border border-dashed border-slate-200"><i class="fa-solid fa-users-slash text-3xl mb-2 text-slate-300"></i><p class="text-xs">No hay clientes registrados en la base de datos.</p></div>`;
                 return;
             }
             container.innerHTML = data.map(c => `
@@ -469,34 +457,38 @@
             renderClientsList(filtered);
         }
 
-        // Sincronización robusta mediante Proxy CORS para evitar bloqueos en celulares y navegadores seguros (Brave/Chrome)
-        async function sincronizarDatos() {
+        // Sincronización JSONP pura y directa con Google Sheets
+        function sincronizarDatos() {
             if (!webAppUrl) return;
-            showToast('Actualizando datos de la base...', 'success');
+            showToast('Consultando base de datos...', 'success');
 
-            try {
-                // Usamos un proxy de CORS público para que el celular lea Google Sheets sin restricciones de red
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(webAppUrl + '?action=getData')}`;
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
+            const scriptId = 'jsonp-script-loader';
+            const oldScript = document.getElementById(scriptId);
+            if (oldScript) oldScript.remove();
 
+            window.gelDataCallback = function(data) {
                 if (data) {
-                    if (Array.isArray(data.clientes) && data.clientes.length > 0) {
+                    if (Array.isArray(data.clientes)) {
                         clientesData = data.clientes;
                         localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
                         renderClientsList(clientesData);
                     }
-                    if (Array.isArray(data.productos) && data.productos.length > 0) {
+                    if (Array.isArray(data.productos)) {
                         productosData = data.productos;
                         localStorage.setItem('telita_productos', JSON.stringify(productosData));
                     }
-                    renderSelects(); // Llena automáticamente las listas de clientes y productos
-                    showToast('¡Datos sincronizados desde Google Sheets!', 'success');
+                    renderSelects(); // Actualiza automáticamente los desplegables de pedidos
+                    showToast('¡Datos actualizados desde Google Sheets!', 'success');
                 }
-            } catch (err) {
-                console.log('Error de red, manteniendo respaldo local');
-                showToast('Usando datos locales', 'error');
-            }
+            };
+
+            const script = document.createElement('script');
+            script.id = scriptId;
+            script.src = `${webAppUrl}?action=getData&callback=gelDataCallback`;
+            script.onerror = function() {
+                showToast('No se pudo conectar a la base', 'error');
+            };
+            document.body.appendChild(script);
         }
 
         async function handleSaveCliente(e) {
@@ -542,7 +534,7 @@
                 
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR CLIENTE EN GOOGLE SHEETS</span>`;
-                setTimeout(sincronizarDatos, 1500);
+                setTimeout(sincronizarDatos, 1500); // Refresca automáticamente desde la base de datos
             }
         }
 
