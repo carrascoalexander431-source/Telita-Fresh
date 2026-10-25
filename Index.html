@@ -322,14 +322,24 @@
         
         let webAppUrl = localStorage.getItem('telita_script_url') || DEFAULT_URL;
         let tasaBCV = parseFloat(localStorage.getItem('telita_tasa_bcv')) || 45.50;
+        
+        // Carga inmediata de clientes y productos desde el almacenamiento local del navegador
         let clientesData = JSON.parse(localStorage.getItem('telita_clientes')) || [];
-        let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [];
+        let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [
+            {nombre: "Queso Crema", precio: 5},
+            {nombre: "Pote Queso Arepero", precio: 5},
+            {nombre: "Masa Facil la Economica", precio: 2},
+            {nombre: "Suero", precio: 2},
+            {nombre: "Facilistas Kaldhini", precio: 3},
+            {nombre: "Combo 1", precio: 10},
+            {nombre: "Combo 2", precio: 14}
+        ];
 
         document.addEventListener('DOMContentLoaded', () => {
             updateTasaDisplay();
             updateApiStatusUI();
             renderClientsList(clientesData);
-            renderSelects();
+            renderSelects(); // Llena automáticamente el selector de clientes en la pestaña Pedido
 
             fetchTasaBCV();
         });
@@ -434,9 +444,9 @@
                         productosData = data.productos;
                         localStorage.setItem('telita_productos', JSON.stringify(productosData));
                     }
-                    renderSelects();
+                    renderSelects(); // Actualiza inmediatamente el selector en la pestaña Pedido
                     toggleConfigModal();
-                    showToast('¡Datos cargados manualmente con éxito!', 'success');
+                    showToast('¡Datos cargados y sincronizados con éxito!', 'success');
                 }
             } catch (e) {
                 showToast('El texto JSON no es válido', 'error');
@@ -520,10 +530,10 @@
             } finally {
                 clientesData.unshift({ cedula, nombre, telefono, direccion });
                 localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
+                renderClientsList(clientesData);
+                renderSelects(); // Actualiza al instante el selector del pedido al agregar un cliente nuevo
                 showToast('¡Cliente guardado con éxito!', 'success');
                 document.getElementById('formNuevoCliente').reset();
-                renderClientsList(clientesData);
-                renderSelects();
                 switchTab('clientes');
                 
                 btn.disabled = false;
