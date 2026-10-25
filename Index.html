@@ -454,33 +454,39 @@
             renderClientsList(filtered);
         }
 
-      async function loadDataFromSheets() {
-    if (!webAppUrl) return;
-    try {
-        // Agregamos un parámetro de tiempo para evitar caché del navegador
-        const res = await fetch(`${webAppUrl}?action=getData&t=` + new Date().getTime());
-        const data = await res.json();
-        if (data) {
-            if (Array.isArray(data.clientes)) {
-                clientesData = data.clientes;
-                localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
-                renderClientsList(clientesData);
-            }
-            if (Array.isArray(data.productos)) {
-                productosData = data.productos;
-                localStorage.setItem('telita_productos', JSON.stringify(productosData));
-            }
-            renderSelects();
-            showToast('¡Datos sincronizados con éxito!', 'success');
+        // Método JSONP antibloqueo CORS para celulares y PC
+        function loadDataFromSheets() {
+            if (!webAppUrl) return;
+            showToast('Sincronizando con Google Sheets...', 'success');
+            
+            const scriptId = 'jsonp-script-loader';
+            const oldScript = document.getElementById(scriptId);
+            if (oldScript) oldScript.remove();
+
+            window.gelDataCallback = function(data) {
+                if (data) {
+                    if (Array.isArray(data.clientes)) {
+                        clientesData = data.clientes;
+                        localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
+                        renderClientsList(clientesData);
+                    }
+                    if (Array.isArray(data.productos)) {
+                        productosData = data.productos;
+                        localStorage.setItem('telita_productos', JSON.stringify(productosData));
+                    }
+                    renderSelects();
+                    showToast('¡Datos sincronizados con éxito!', 'success');
+                }
+            };
+
+            const script = document.createElement('script');
+            script.id = scriptId;
+            script.src = `${webAppUrl}?action=getData&callback=gelDataCallback`;
+            script.onerror = function() {
+                showToast('Error al conectar con la hoja', 'error');
+            };
+            document.body.appendChild(script);
         }
-    } catch (e) {
-        console.log("Error cargando de Sheets, usando datos locales:", e);
-        // Si hay bloqueo de red, cargamos lo que está guardado en memoria para que no se quede en blanco
-        renderClientsList(clientesData);
-        renderSelects();
-        showToast('Sincronizado desde memoria local', 'success');
-    }
-}
 
         async function handleSaveCliente(e) {
             e.preventDefault();
@@ -489,7 +495,6 @@
             const telefono = document.getElementById('clienteTelefono').value.trim();
             const direccion = document.getElementById('clienteDireccion').value.trim();
 
-            // Verificar si el cliente ya existe en memoria
             const clienteExistente = clientesData.find(c => String(c.cedula).toLowerCase() === cedula.toLowerCase());
             if (clienteExistente) {
                 showToast('¡El cliente ya existe en la base de datos!', 'error');
@@ -508,16 +513,14 @@
             params.append('direccion', direccion);
 
             try {
-                // Enviar datos a Google Sheets
                 await fetch(webAppUrl, {
                     method: 'POST',
                     mode: 'no-cors',
                     body: params
                 });
             } catch (err) {
-                console.log("Envío no-cors completado");
+                console.log("Envío completado");
             } finally {
-                // Confirmación de éxito en la interfaz
                 clientesData.unshift({ cedula, nombre, telefono, direccion });
                 localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
                 showToast('¡Cliente guardado con éxito!', 'success');
@@ -567,7 +570,7 @@
                     body: params
                 });
             } catch (err) {
-                console.log("Envío no-cors pedido completado");
+                console.log("Envío pedido completado");
             } finally {
                 showToast('¡Pedido registrado y enviado a Telegram!', 'success');
                 document.getElementById('formNuevoPedido').reset();
