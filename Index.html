@@ -457,7 +457,7 @@
             renderClientsList(filtered);
         }
 
-        // Sincronización automática en vivo mediante JSONP (trae todos los datos de la base de datos)
+        // Sincronización automática mediante JSONP
         function sincronizarDatos() {
             if (!webAppUrl) return;
             showToast('Buscando datos en la base de datos...', 'success');
@@ -477,7 +477,7 @@
                         productosData = data.productos;
                         localStorage.setItem('telita_productos', JSON.stringify(productosData));
                     }
-                    renderSelects(); // Actualiza tanto la lista de clientes como el menú de pedidos
+                    renderSelects(); // Actualiza las listas desplegables
                     showToast('¡Datos actualizados desde Google Sheets!', 'success');
                 }
             };
@@ -555,9 +555,9 @@
 
             const btn = document.getElementById('btnSavePedido');
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>GUARDANDO Y NOTIFICANDO...`,
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>GUARDANDO Y NOTIFICANDO...</span>`;
 
-            params = new URLSearchParams();
+            const params = new URLSearchParams();
             params.append('action', 'nuevoPedido');
             params.append('cedulaCliente', cedulaCliente);
             params.append('nombreCliente', nombreCliente);
