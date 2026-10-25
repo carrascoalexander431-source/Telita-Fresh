@@ -205,6 +205,16 @@
             if(t && !isNaN(t)) { tasaBCV = parseFloat(t); document.getElementById('tasaBCVDisplay').textContent = `${tasaBCV.toFixed(2)} Bs/$`; }
         }
 
+        // Método infalible para enviar peticiones POST desde móviles sin bloqueos CORS
+        function enviarAccionGoogle(paramsObj) {
+            let params = new URLSearchParams(paramsObj);
+            let img = document.createElement('img');
+            img.src = `${WEB_URL}?${params.toString()}`;
+            img.style.display = 'none';
+            document.body.appendChild(img);
+            setTimeout(() => img.remove(), 2000);
+        }
+
         function sincronizarDatos() {
             showToast("Sincronizando con base de datos...");
             const scriptId = 'jsonp-loader';
@@ -240,7 +250,7 @@
         function renderClientesUI(data) {
             let cont = document.getElementById('listaClientes');
             if(data.length === 0) { cont.innerHTML = '<p class="text-center text-xs text-slate-400 p-4">No hay clientes.</p>'; return; }
-            cont.innerHTML = data.map(c => `
+            cont.innerHTML = data.map((c, index) => `
                 <div class="bg-white p-3 rounded-2xl border shadow-sm flex justify-between items-center text-xs">
                     <div>
                         <h3 class="font-bold text-wood-900">${c.nombre}</h3>
@@ -249,7 +259,7 @@
                     </div>
                     <div class="flex gap-1.5">
                         <button onclick='editarCliente(${JSON.stringify(c)})' class="bg-amber-100 text-amber-900 p-2 rounded-xl" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick='eliminarCliente("${c.cedula}", "${c.nombre}")' class="bg-rose-100 text-rose-700 p-2 rounded-xl" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick='eliminarCliente(${index + 2}, "${c.nombre}")' class="bg-rose-100 text-rose-700 p-2 rounded-xl" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
             `).join('');
@@ -258,7 +268,7 @@
         function renderProductosUI(data) {
             let cont = document.getElementById('listaProductos');
             if(data.length === 0) { cont.innerHTML = '<p class="text-center text-xs text-slate-400 p-4">No hay productos.</p>'; return; }
-            cont.innerHTML = data.map(p => `
+            cont.innerHTML = data.map((p, index) => `
                 <div class="bg-white p-3 rounded-2xl border shadow-sm flex justify-between items-center text-xs">
                     <div>
                         <h3 class="font-bold text-wood-900">${p.nombre} (Cód: ${p.codigo})</h3>
@@ -266,7 +276,7 @@
                     </div>
                     <div class="flex gap-1.5">
                         <button onclick='editarProducto(${JSON.stringify(p)})' class="bg-amber-100 text-amber-900 p-2 rounded-xl" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick='eliminarProducto("${p.codigo}", "${p.nombre}")' class="bg-rose-100 text-rose-700 p-2 rounded-xl" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick='eliminarProducto(${index + 2}, "${p.nombre}")' class="bg-rose-100 text-rose-700 p-2 rounded-xl" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
             `).join('');
@@ -323,55 +333,51 @@
 
         function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-        async function guardarCliente(e) {
+        function guardarCliente(e) {
             e.preventDefault();
-            let params = new URLSearchParams({
+            enviarAccionGoogle({
                 action: 'guardarCliente',
                 cedula: document.getElementById('mCedula').value,
                 nombre: document.getElementById('mNombre').value,
                 telefono: document.getElementById('mTelefono').value,
                 direccion: document.getElementById('mDireccion').value
             });
-            await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
             cerrarModal('modalCliente');
-            showToast("¡Cliente guardado!");
+            showToast("¡Cliente guardado en Google Sheets!");
             setTimeout(sincronizarDatos, 1500);
         }
 
-        async function eliminarCliente(cedula, nombre) {
+        function eliminarCliente(fila, nombre) {
             if(confirm(`¿Estás seguro de eliminar al cliente: ${nombre}?`)) {
-                let params = new URLSearchParams({ action: 'eliminarCliente', cedula: cedula });
-                await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
+                enviarAccionGoogle({ action: 'eliminarCliente', fila: fila });
                 showToast("Cliente eliminado");
                 setTimeout(sincronizarDatos, 1500);
             }
         }
 
-        async function guardarProducto(e) {
+        function guardarProducto(e) {
             e.preventDefault();
-            let params = new URLSearchParams({
+            enviarAccionGoogle({
                 action: 'guardarProducto',
                 codigo: document.getElementById('pCodigo').value,
                 nombre: document.getElementById('pNombre').value,
                 precio: document.getElementById('pPrecio').value,
                 stock: document.getElementById('pStock').value || 0
             });
-            await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
             cerrarModal('modalProducto');
-            showToast("¡Producto guardado!");
+            showToast("¡Producto guardado en Google Sheets!");
             setTimeout(sincronizarDatos, 1500);
         }
 
-        async function eliminarProducto(codigo, nombre) {
+        function eliminarProducto(fila, nombre) {
             if(confirm(`¿Estás seguro de eliminar el producto: ${nombre}?`)) {
-                let params = new URLSearchParams({ action: 'eliminarProducto', codigo: codigo });
-                await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
+                enviarAccionGoogle({ action: 'eliminarProducto', fila: fila });
                 showToast("Producto eliminado");
                 setTimeout(sincronizarDatos, 1500);
             }
         }
 
-        async function handleSavePedido(e) {
+        function handleSavePedido(e) {
             e.preventDefault();
             let selC = document.getElementById('pedidoCliente');
             let cedula = selC.value;
@@ -380,7 +386,7 @@
             let cant = document.getElementById('pedidoCantidad').value;
             let precio = document.getElementById('pedidoPrecio').value;
 
-            let params = new URLSearchParams({
+            enviarAccionGoogle({
                 action: 'nuevoPedido',
                 cedulaCliente: cedula,
                 nombreCliente: nombre,
@@ -390,7 +396,6 @@
                 fecha: new Date().toLocaleString()
             });
 
-            await fetch(WEB_URL, { method: 'POST', mode: 'no-cors', body: params });
             showToast("¡Pedido registrado y notificado!");
             document.getElementById('formPedido').reset();
             document.getElementById('resumenUsd').textContent = "$0.00";
