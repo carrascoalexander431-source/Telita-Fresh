@@ -258,7 +258,7 @@
                 </button>
             </div>
             <p class="text-xs text-slate-500 leading-relaxed">
-                ¿Problemas para sincronizar? Copia el JSON directamente desde Google o configura tu enlace web.
+                URL de la Web App configurada para enlazar con Google Sheets.
             </p>
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Apps Script Web App URL</label>
@@ -266,7 +266,7 @@
             </div>
             <div class="pt-2 border-t border-slate-100">
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Carga Manual de Respaldo (JSON)</label>
-                <textarea id="jsonManualInput" rows="3" placeholder="Pega aquí el contenido JSON si el navegador bloquea la red..." class="w-full border border-slate-200 rounded-xl p-2 text-[11px]"></textarea>
+                <textarea id="jsonManualInput" rows="3" placeholder="Pega aquí el contenido JSON si deseas actualizar manual..." class="w-full border border-slate-200 rounded-xl p-2 text-[11px]"></textarea>
                 <button onclick="importarJsonManual()" class="mt-1 w-full py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 hover:bg-emerald-200">Cargar Datos Manualmente</button>
             </div>
             <div class="flex justify-end space-x-2 pt-2">
@@ -323,7 +323,6 @@
         let webAppUrl = localStorage.getItem('telita_script_url') || DEFAULT_URL;
         let tasaBCV = parseFloat(localStorage.getItem('telita_tasa_bcv')) || 45.50;
         
-        // Carga inmediata de clientes y productos desde el almacenamiento local del navegador
         let clientesData = JSON.parse(localStorage.getItem('telita_clientes')) || [];
         let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [
             {nombre: "Queso Crema", precio: 5},
@@ -339,9 +338,10 @@
             updateTasaDisplay();
             updateApiStatusUI();
             renderClientsList(clientesData);
-            renderSelects(); // Llena automáticamente el selector de clientes en la pestaña Pedido
+            renderSelects(); // Llena automáticamente el selector de clientes en la pestaña Pedido al iniciar
 
             fetchTasaBCV();
+            sincronizarDatos(); // Carga silenciosa en segundo plano al abrir la app
         });
 
         async function fetchTasaBCV() {
@@ -428,6 +428,7 @@
             updateApiStatusUI();
             toggleConfigModal();
             showToast('URL guardada correctamente', 'success');
+            sincronizarDatos();
         }
 
         function importarJsonManual() {
@@ -444,9 +445,9 @@
                         productosData = data.productos;
                         localStorage.setItem('telita_productos', JSON.stringify(productosData));
                     }
-                    renderSelects(); // Actualiza inmediatamente el selector en la pestaña Pedido
+                    renderSelects();
                     toggleConfigModal();
-                    showToast('¡Datos cargados y sincronizados con éxito!', 'success');
+                    showToast('¡Datos cargados con éxito!', 'success');
                 }
             } catch (e) {
                 showToast('El texto JSON no es válido', 'error');
@@ -466,7 +467,7 @@
         function renderClientsList(data) {
             const container = document.getElementById('clientsListContainer');
             if (!data || data.length === 0) {
-                container.innerHTML = `<div class="bg-white rounded-xl p-8 text-center text-slate-400 border border-dashed border-slate-200"><i class="fa-solid fa-users-slash text-3xl mb-2 text-slate-300"></i><p class="text-xs">No hay clientes registrados en la memoria local.</p><p class="text-[10px] text-slate-400 mt-1">Usa la rueda de configuración 🔌 para importar tus datos si estás en el celular.</p></div>`;
+                container.innerHTML = `<div class="bg-white rounded-xl p-8 text-center text-slate-400 border border-dashed border-slate-200"><i class="fa-solid fa-users-slash text-3xl mb-2 text-slate-300"></i><p class="text-xs">No hay clientes registrados en la memoria local.</p></div>`;
                 return;
             }
             container.innerHTML = data.map(c => `
@@ -490,9 +491,37 @@
             renderClientsList(filtered);
         }
 
+        // Sincronización silenciosa mediante JSONP (sin abrir pestañas adicionales)
         function sincronizarDatos() {
-            showToast('Abriendo enlace de sincronización...', 'success');
-            window.open(`${webAppUrl}?action=getData`, '_blank');
+            if (!webAppUrl) return;
+            
+            const scriptId = 'jsonp-script-loader';
+            const oldScript = document.getElementById(scriptId);
+            if (oldScript) oldScript.remove();
+
+            window.gelDataCallback = function(data) {
+                if (data) {
+                    if (Array.isArray(data.clientes)) {
+                        clientesData = data.clientes;
+                        localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
+                        renderClientsList(clientesData);
+                    }
+                    if (Array.isArray(data.productos)) {
+                        productosData = data.productos;
+                        localStorage.setItem('telita_productos', JSON.stringify(productosData));
+                    }
+                    renderSelects(); // Actualiza automáticamente el desplegable de clientes en Pedidos
+                    showToast('¡Datos sincronizados con éxito!', 'success');
+                }
+            };
+
+            const script = document.createElement('script');
+            script.id = scriptId;
+            script.src = `${webAppUrl}?action=getData&callback=gelDataCallback`;
+            script.onerror = function() {
+                console.log('Sincronización en segundo plano con aviso local');
+            };
+            document.body.appendChild(script);
         }
 
         async function handleSaveCliente(e) {
@@ -531,10 +560,10 @@
                 clientesData.unshift({ cedula, nombre, telefono, direccion });
                 localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
                 renderClientsList(clientesData);
-                renderSelects(); // Actualiza al instante el selector del pedido al agregar un cliente nuevo
+                renderSelects(); // Actualiza de inmediato el desplegable de clientes en Pedidos
                 showToast('¡Cliente guardado con éxito!', 'success');
                 document.getElementById('formNuevoCliente').reset();
-                switchTab('clientes');
+                switchTab('pedido'); // Vuelve directo a la pestaña de pedido para que selecciones al cliente recién creado
                 
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR CLIENTE EN GOOGLE SHEETS</span>`;
