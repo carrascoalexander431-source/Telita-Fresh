@@ -155,7 +155,7 @@
                     </h2>
                     <p class="text-[11px] text-slate-500">Directorio registrado de clientes y comercios</p>
                 </div>
-                <button onclick="loadDataFromSheets()" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-semibold px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                <button onclick="sincronizarDatos()" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-semibold px-2.5 py-1 rounded-lg transition flex items-center gap-1">
                     <i class="fa-solid fa-arrows-rotate text-[10px]"></i> Sincronizar
                 </button>
             </div>
@@ -258,11 +258,16 @@
                 </button>
             </div>
             <p class="text-xs text-slate-500 leading-relaxed">
-                URL de la Web App configurada para enlazar con Google Sheets.
+                ¿Problemas para sincronizar? Copia el JSON directamente desde Google o configura tu enlace web.
             </p>
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Apps Script Web App URL</label>
                 <input type="url" id="scriptUrlInput" class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div class="pt-2 border-t border-slate-100">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Carga Manual de Respaldo (JSON)</label>
+                <textarea id="jsonManualInput" rows="3" placeholder="Pega aquí el contenido JSON si el navegador bloquea la red..." class="w-full border border-slate-200 rounded-xl p-2 text-[11px]"></textarea>
+                <button onclick="importarJsonManual()" class="mt-1 w-full py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 hover:bg-emerald-200">Cargar Datos Manualmente</button>
             </div>
             <div class="flex justify-end space-x-2 pt-2">
                 <button onclick="toggleConfigModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600">Cancelar</button>
@@ -327,7 +332,6 @@
             renderSelects();
 
             fetchTasaBCV();
-            loadDataFromSheets();
         });
 
         async function fetchTasaBCV() {
@@ -414,7 +418,29 @@
             updateApiStatusUI();
             toggleConfigModal();
             showToast('URL guardada correctamente', 'success');
-            loadDataFromSheets();
+        }
+
+        function importarJsonManual() {
+            try {
+                const texto = document.getElementById('jsonManualInput').value.trim();
+                const data = JSON.parse(texto);
+                if (data) {
+                    if (Array.isArray(data.clientes)) {
+                        clientesData = data.clientes;
+                        localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
+                        renderClientsList(clientesData);
+                    }
+                    if (Array.isArray(data.productos)) {
+                        productosData = data.productos;
+                        localStorage.setItem('telita_productos', JSON.stringify(productosData));
+                    }
+                    renderSelects();
+                    toggleConfigModal();
+                    showToast('¡Datos cargados manualmente con éxito!', 'success');
+                }
+            } catch (e) {
+                showToast('El texto JSON no es válido', 'error');
+            }
         }
 
         function renderSelects() {
@@ -430,7 +456,7 @@
         function renderClientsList(data) {
             const container = document.getElementById('clientsListContainer');
             if (!data || data.length === 0) {
-                container.innerHTML = `<div class="bg-white rounded-xl p-8 text-center text-slate-400 border border-dashed border-slate-200"><i class="fa-solid fa-users-slash text-3xl mb-2 text-slate-300"></i><p class="text-xs">No hay clientes registrados.</p></div>`;
+                container.innerHTML = `<div class="bg-white rounded-xl p-8 text-center text-slate-400 border border-dashed border-slate-200"><i class="fa-solid fa-users-slash text-3xl mb-2 text-slate-300"></i><p class="text-xs">No hay clientes registrados en la memoria local.</p><p class="text-[10px] text-slate-400 mt-1">Usa la rueda de configuración 🔌 para importar tus datos si estás en el celular.</p></div>`;
                 return;
             }
             container.innerHTML = data.map(c => `
@@ -454,38 +480,9 @@
             renderClientsList(filtered);
         }
 
-        // Método JSONP antibloqueo CORS para celulares y PC
-        function loadDataFromSheets() {
-            if (!webAppUrl) return;
-            showToast('Sincronizando con Google Sheets...', 'success');
-            
-            const scriptId = 'jsonp-script-loader';
-            const oldScript = document.getElementById(scriptId);
-            if (oldScript) oldScript.remove();
-
-            window.gelDataCallback = function(data) {
-                if (data) {
-                    if (Array.isArray(data.clientes)) {
-                        clientesData = data.clientes;
-                        localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
-                        renderClientsList(clientesData);
-                    }
-                    if (Array.isArray(data.productos)) {
-                        productosData = data.productos;
-                        localStorage.setItem('telita_productos', JSON.stringify(productosData));
-                    }
-                    renderSelects();
-                    showToast('¡Datos sincronizados con éxito!', 'success');
-                }
-            };
-
-            const script = document.createElement('script');
-            script.id = scriptId;
-            script.src = `${webAppUrl}?action=getData&callback=gelDataCallback`;
-            script.onerror = function() {
-                showToast('Error al conectar con la hoja', 'error');
-            };
-            document.body.appendChild(script);
+        function sincronizarDatos() {
+            showToast('Abriendo enlace de sincronización...', 'success');
+            window.open(`${webAppUrl}?action=getData`, '_blank');
         }
 
         async function handleSaveCliente(e) {
@@ -531,7 +528,6 @@
                 
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR CLIENTE EN GOOGLE SHEETS</span>`;
-                setTimeout(loadDataFromSheets, 1500);
             }
         }
 
@@ -544,7 +540,7 @@
             
             const producto = document.getElementById('pedidoProducto').value;
             const cantidad = document.getElementById('pedidoCantidad').value;
-            const precio = document.getElementById('pedidoPrecio').value;
+            const precio = document.getElementById('pedidoPrecio')->value;
             const totalUsd = (cantidad * precio).toFixed(2);
             const totalBs = (totalUsd * tasaBCV).toFixed(2);
             const fecha = new Date().toLocaleString();
