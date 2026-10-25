@@ -318,10 +318,9 @@
         let webAppUrl = localStorage.getItem('telita_script_url') || DEFAULT_URL;
         let tasaBCV = parseFloat(localStorage.getItem('telita_tasa_bcv')) || 45.50;
         
-        // Catálogo de respaldo inicial por defecto para que las listas NUNCA queden vacías
+        // Inicializamos con respaldo local para que las listas nunca estén vacías al abrir
         let clientesData = JSON.parse(localStorage.getItem('telita_clientes')) || [
-            {cedula: "V-12835862", nombre: "Yennifer Arellano", telefono: "4126133207", direccion: "Defensa pública"},
-            {cedula: "V-12345678", nombre: "Maria Perez", telefono: "412123456789", direccion: "casa"}
+            {cedula: "V-12835862", nombre: "Alexander Carrasco", telefono: "04129609641", direccion: "Cur"}
         ];
         let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [
             {codigo: "1", nombre: "Queso Crema", precio: 5, stock: 0},
@@ -337,10 +336,10 @@
             updateTasaDisplay();
             updateApiStatusUI();
             renderClientsList(clientesData);
-            renderSelects(); // Llena las listas desplegables inmediatamente al cargar la app
+            renderSelects();
 
             fetchTasaBCV();
-            sincronizarDatos(); // Intenta consultar en vivo con Google Sheets en segundo plano
+            sincronizarDatos(); // Consulta automática mediante Proxy CORS al iniciar
         });
 
         async function fetchTasaBCV() {
@@ -470,15 +469,17 @@
             renderClientsList(filtered);
         }
 
-        // Sincronización automática mediante JSONP
-        function sincronizarDatos() {
+        // Sincronización robusta mediante Proxy CORS para evitar bloqueos en celulares y navegadores seguros (Brave/Chrome)
+        async function sincronizarDatos() {
             if (!webAppUrl) return;
+            showToast('Actualizando datos de la base...', 'success');
 
-            const scriptId = 'jsonp-script-loader';
-            const oldScript = document.getElementById(scriptId);
-            if (oldScript) oldScript.remove();
+            try {
+                // Usamos un proxy de CORS público para que el celular lea Google Sheets sin restricciones de red
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(webAppUrl + '?action=getData')}`;
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
 
-            window.gelDataCallback = function(data) {
                 if (data) {
                     if (Array.isArray(data.clientes) && data.clientes.length > 0) {
                         clientesData = data.clientes;
@@ -489,17 +490,13 @@
                         productosData = data.productos;
                         localStorage.setItem('telita_productos', JSON.stringify(productosData));
                     }
-                    renderSelects(); // Llena automáticamente las listas con los datos actualizados de Google Sheets
+                    renderSelects(); // Llena automáticamente las listas de clientes y productos
+                    showToast('¡Datos sincronizados desde Google Sheets!', 'success');
                 }
-            };
-
-            const script = document.createElement('script');
-            script.id = scriptId;
-            script.src = `${webAppUrl}?action=getData&callback=gelDataCallback`;
-            script.onerror = function() {
-                console.log('Usando datos de respaldo local');
-            };
-            document.body.appendChild(script);
+            } catch (err) {
+                console.log('Error de red, manteniendo respaldo local');
+                showToast('Usando datos locales', 'error');
+            }
         }
 
         async function handleSaveCliente(e) {
