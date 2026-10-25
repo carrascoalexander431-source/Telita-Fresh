@@ -317,17 +317,30 @@
         
         let webAppUrl = localStorage.getItem('telita_script_url') || DEFAULT_URL;
         let tasaBCV = parseFloat(localStorage.getItem('telita_tasa_bcv')) || 45.50;
-        let clientesData = JSON.parse(localStorage.getItem('telita_clientes')) || [];
-        let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [];
+        
+        // Catálogo de respaldo inicial por defecto para que las listas NUNCA queden vacías
+        let clientesData = JSON.parse(localStorage.getItem('telita_clientes')) || [
+            {cedula: "V-12835862", nombre: "Yennifer Arellano", telefono: "4126133207", direccion: "Defensa pública"},
+            {cedula: "V-12345678", nombre: "Maria Perez", telefono: "412123456789", direccion: "casa"}
+        ];
+        let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [
+            {codigo: "1", nombre: "Queso Crema", precio: 5, stock: 0},
+            {codigo: "2", nombre: "Pote Queso Arepero", precio: 5, stock: 0},
+            {codigo: "3", nombre: "Masa Facil la Economica", precio: 2, stock: 0},
+            {codigo: "4", nombre: "Suero", precio: 2, stock: 0},
+            {codigo: "5", nombre: "Facilistas Kaldhini", precio: 3, stock: 0},
+            {codigo: "6", nombre: "Combo 1", precio: 10, stock: 0},
+            {codigo: "7", nombre: "Combo 2", precio: 14, stock: 0}
+        ];
 
         document.addEventListener('DOMContentLoaded', () => {
             updateTasaDisplay();
             updateApiStatusUI();
             renderClientsList(clientesData);
-            renderSelects();
+            renderSelects(); // Llena las listas desplegables inmediatamente al cargar la app
 
             fetchTasaBCV();
-            sincronizarDatos(); // Consulta automática en vivo al abrir la aplicación
+            sincronizarDatos(); // Intenta consultar en vivo con Google Sheets en segundo plano
         });
 
         async function fetchTasaBCV() {
@@ -460,7 +473,6 @@
         // Sincronización automática mediante JSONP
         function sincronizarDatos() {
             if (!webAppUrl) return;
-            showToast('Buscando datos en la base de datos...', 'success');
 
             const scriptId = 'jsonp-script-loader';
             const oldScript = document.getElementById(scriptId);
@@ -468,17 +480,16 @@
 
             window.gelDataCallback = function(data) {
                 if (data) {
-                    if (Array.isArray(data.clientes)) {
+                    if (Array.isArray(data.clientes) && data.clientes.length > 0) {
                         clientesData = data.clientes;
                         localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
                         renderClientsList(clientesData);
                     }
-                    if (Array.isArray(data.productos)) {
+                    if (Array.isArray(data.productos) && data.productos.length > 0) {
                         productosData = data.productos;
                         localStorage.setItem('telita_productos', JSON.stringify(productosData));
                     }
-                    renderSelects(); // Actualiza las listas desplegables
-                    showToast('¡Datos actualizados desde Google Sheets!', 'success');
+                    renderSelects(); // Llena automáticamente las listas con los datos actualizados de Google Sheets
                 }
             };
 
@@ -486,7 +497,7 @@
             script.id = scriptId;
             script.src = `${webAppUrl}?action=getData&callback=gelDataCallback`;
             script.onerror = function() {
-                showToast('Usando datos almacenados localmente', 'error');
+                console.log('Usando datos de respaldo local');
             };
             document.body.appendChild(script);
         }
