@@ -89,11 +89,11 @@
                     <div class="flex justify-between font-medium"><span>Total USD:</span> <span id="resumenUsd" class="font-bold text-emerald-800">$0.00</span></div>
                     <div class="flex justify-between font-medium"><span>Total Bs:</span> <span id="resumenBs" class="font-bold text-amber-900">Bs. 0.00</span></div>
                 </div>
-                <button type="submit" id="btnPedido" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg text-xs">GUARDAR Y NOTIFICAR PEDIDO</button>
+                <button type="submit" id="btnPedido" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg text-xs">GUARDAR Y NOTIFICAR PEDIDO</button>
             </form>
         </section>
 
-        <!-- TAB 2: CLIENTES (Listar, Buscar, Editar) -->
+        <!-- TAB 2: CLIENTES -->
         <section id="tab-clientes" class="tab-content hidden space-y-3">
             <div class="flex justify-between items-center pb-2 border-b">
                 <h2 class="text-base font-bold text-wood-900 flex items-center gap-2"><i class="fa-solid fa-users text-emerald-600"></i> Gestión de Clientes</h2>
@@ -103,7 +103,7 @@
             <div id="listaClientes" class="space-y-3"></div>
         </section>
 
-        <!-- TAB 3: PRODUCTOS (Listar, Modificar, Crear) -->
+        <!-- TAB 3: PRODUCTOS -->
         <section id="tab-productos" class="tab-content hidden space-y-3">
             <div class="flex justify-between items-center pb-2 border-b">
                 <h2 class="text-base font-bold text-wood-900 flex items-center gap-2"><i class="fa-solid fa-box text-emerald-600"></i> Catálogo de Productos</h2>
@@ -160,12 +160,20 @@
     <!-- Toast Notification -->
     <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 transition-all opacity-0 pointer-events-none w-11/12 max-w-xs bg-wood-900 text-white text-xs py-3 px-4 rounded-xl shadow-2xl text-center">Operación exitosa</div>
 
-    <!-- Navigation Bar -->
-    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t px-3 py-2 z-30 flex justify-around items-center shadow-lg text-[10px]">
-        <button onclick="switchTab('pedido')" id="nav-pedido" class="nav-btn flex flex-col items-center text-emerald-700 font-semibold"><i class="fa-solid fa-cart-shopping text-base"><span>Pedido</span></i></button>
-        <button onclick="switchTab('clientes')" id="nav-clientes" class="nav-btn flex flex-col items-center text-slate-400"><i class="fa-solid fa-users text-base"><span>Clientes</span></i></button>
-        <button onclick="switchTab('productos')" id="nav-productos" class="nav-btn flex flex-col items-center text-slate-400"><i class="fa-solid fa-box text-base"><span>Productos</span></i></button>
-        <button onclick="switchTab('calculadora')" id="nav-calculadora" class="nav-btn flex flex-col items-center text-slate-400"><i class="fa-solid fa-calculator text-base"><span>Calculadora</span></i></button>
+    <!-- Navigation Bar (Solo Íconos Limpios) -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t py-3 px-6 z-30 flex justify-between items-center shadow-lg">
+        <button onclick="switchTab('pedido')" id="nav-pedido" title="Pedidos" class="nav-btn text-emerald-700 text-xl transition transform hover:scale-110">
+            <i class="fa-solid fa-cart-shopping"></i>
+        </button>
+        <button onclick="switchTab('clientes')" id="nav-clientes" title="Clientes" class="nav-btn text-slate-400 text-xl transition transform hover:scale-110">
+            <i class="fa-solid fa-users"></i>
+        </button>
+        <button onclick="switchTab('productos')" id="nav-productos" title="Productos" class="nav-btn text-slate-400 text-xl transition transform hover:scale-110">
+            <i class="fa-solid fa-box"></i>
+        </button>
+        <button onclick="switchTab('calculadora')" id="nav-calculadora" title="Calculadora" class="nav-btn text-slate-400 text-xl transition transform hover:scale-110">
+            <i class="fa-solid fa-calculator"></i>
+        </button>
     </nav>
 
     <!-- Script de la App -->
@@ -288,7 +296,7 @@
         }
         function editarCliente(c) {
             document.getElementById('mCedula').value = c.cedula;
-            document.getElementById('mCedula').disabled = true; // No modificar llave primaria
+            document.getElementById('mCedula').disabled = true;
             document.getElementById('mNombre').value = c.nombre;
             document.getElementById('mTelefono').value = c.telefono;
             document.getElementById('mDireccion').value = c.direccion;
@@ -370,8 +378,8 @@
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.querySelectorAll('.nav-btn').forEach(b => b.className = "nav-btn flex flex-col items-center text-slate-400");
-            document.getElementById(`nav-${tab}`).className = "nav-btn flex flex-col items-center text-emerald-700 font-semibold";
+            document.querySelectorAll('.nav-btn').forEach(b => b.className = "nav-btn text-slate-400 text-xl transition transform hover:scale-110");
+            document.getElementById(`nav-${tab}`).className = "nav-btn text-emerald-700 text-xl transition transform hover:scale-110 font-bold";
         }
 
         function showToast(msg) {
@@ -387,7 +395,7 @@
         }
         function convertBs() {
             let b = parseFloat(document.getElementById('calcBs').value) || 0;
-            document.getElementById('calcUsdInput') ? '' : document.getElementById('calcUsd').value = (b / tasaBCV).toFixed(2);
+            document.getElementById('calcUsd').value = (b / tasaBCV).toFixed(2);
         }
     </script>
 </body>
