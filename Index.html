@@ -77,7 +77,7 @@
         <div class="flex items-center gap-2 font-medium text-wood-900">
             <i class="fa-solid fa-building-columns text-emerald-700"></i>
             <span>Tasa BCV:</span>
-            <span id="tasaBCVDisplay" class="font-extrabold text-emerald-800 text-sm">Cargando...</span>
+            <span id="tasaBCVDisplay" class="font-extrabold text-emerald-800 text-sm">45.50 Bs/$</span>
         </div>
         <div class="flex items-center gap-2">
             <button onclick="editTasaManual()" class="text-wood-800 hover:text-wood-900 font-semibold underline text-[11px]">
@@ -313,7 +313,6 @@
             }
         }
 
-        // URL ACTUALIZADA Y DEFINITIVA DE GOOGLE APPS SCRIPT
         const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbzdqQaLDLPpZN4EcNpkMovCik9JbvAZJTZzSf6hGpFu_cDT-63QXoY92kQwqEmcLcoO4Q/exec";
         
         let webAppUrl = localStorage.getItem('telita_script_url') || DEFAULT_URL;
@@ -322,29 +321,32 @@
         let productosData = JSON.parse(localStorage.getItem('telita_productos')) || [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            fetchTasaBCV();
-            // Forzar actualización si tenía guardada la URL vieja que daba error 404
-            if (!webAppUrl || webAppUrl.includes("AKfycbw-NElt5bTYQecsym2FCfXtGZY74nIjIb1H1i8h0_o3YKSqmwuKY1NxaZ2F8MkR2n_Shw")) {
-                webAppUrl = DEFAULT_URL;
-                localStorage.setItem('telita_script_url', DEFAULT_URL);
-            }
+            // Inicializar interfaz inmediatamente con datos locales
+            updateTasaDisplay();
             updateApiStatusUI();
             renderClientsList(clientesData);
             renderSelects();
-            // Cargar inmediatamente desde Google Sheets al iniciar
+
+            // Cargar en segundo plano sin congelar la app
+            fetchTasaBCV();
             loadDataFromSheets();
         });
 
         async function fetchTasaBCV() {
             try {
-                const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 4000); // Timeout de 4 seg para evitar bloqueo
+                
+                const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
                 const data = await res.json();
                 if (data && data.promedio) {
                     tasaBCV = parseFloat(data.promedio);
                     localStorage.setItem('telita_tasa_bcv', tasaBCV);
                 }
             } catch (err) {
-                console.log('Usando tasa almacenada');
+                console.log('Usando tasa almacenada localmente');
             }
             updateTasaDisplay();
             calcularTotalPedido();
@@ -460,7 +462,6 @@
                 const res = await fetch(`${webAppUrl}?action=getData`);
                 const data = await res.json();
                 if (data) {
-                    // Actualizamos siempre los arreglos con lo que venga de Google Sheets
                     if (Array.isArray(data.clientes)) {
                         clientesData = data.clientes;
                         localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
@@ -471,11 +472,9 @@
                         localStorage.setItem('telita_productos', JSON.stringify(productosData));
                     }
                     renderSelects();
-                    showToast('Datos sincronizados con éxito', 'success');
                 }
             } catch (e) {
                 console.log("Error cargando de Sheets, manteniendo datos locales");
-                showToast('Error al sincronizar con Sheets', 'error');
             }
         }
 
@@ -486,7 +485,6 @@
             const telefono = document.getElementById('clienteTelefono').value.trim();
             const direccion = document.getElementById('clienteDireccion').value.trim();
 
-            // Validación de cliente existente en memoria
             const clienteExistente = clientesData.find(c => String(c.cedula).toLowerCase() === cedula.toLowerCase());
             if (clienteExistente) {
                 showToast('¡El cliente ya existe en la base de datos!', 'error');
@@ -535,4 +533,64 @@
             const nombreCliente = optionSelected ? optionSelected.getAttribute('data-nombre') : '';
             
             const producto = document.getElementById('pedidoProducto').value;
-            const cantidad
+            const cantidad = document.getElementById('pedidoCantidad').value;
+            const precio = document.getElementById('pedidoPrecio').value;
+            const totalUsd = (cantidad * precio).toFixed(2);
+            const totalBs = (totalUsd * tasaBCV).toFixed(2);
+            const fecha = new Date().toLocaleString();
+            const descripcionProductos = `${cantidad}x ${producto} ($${precio} c/u)`;
+
+            const btn = document.getElementById('btnSavePedido');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>GUARDANDO Y NOTIFICANDO...</span>`;
+
+            const params = new URLSearchParams();
+            params.append('action', 'nuevoPedido');
+            params.append('cedulaCliente', cedulaCliente);
+            params.append('nombreCliente', nombreCliente);
+            params.append('productos', descripcionProductos);
+            params.append('totalUsd', totalUsd);
+            params.append('totalBs', totalBs);
+            params.append('fecha', fecha);
+
+            try {
+                await fetch(webAppUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: params
+                });
+
+                showToast('¡Pedido registrado y enviado a Telegram!', 'success');
+                document.getElementById('formNuevoPedido').reset();
+                document.getElementById('resumenTotalUsd').textContent = '$0.00';
+                document.getElementById('resumenTotalBs').textContent = 'Bs. 0.00';
+            } catch (err) {
+                showToast('Error al registrar pedido', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>GUARDAR PEDIDO EN GOOGLE SHEETS</span>`;
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = "nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 font-medium text-[10px] transition";
+            });
+            document.getElementById(`nav-${tabId}`).className = "nav-btn flex flex-col items-center gap-0.5 text-emerald-700 font-semibold text-[10px] transition";
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            const iconEl = document.getElementById('toastIcon');
+            msgEl.textContent = message;
+            iconEl.className = type === 'success' ? "fa-solid fa-circle-check text-emerald-400 text-base" : "fa-solid fa-circle-exclamation text-rose-400 text-base";
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { toast.classList.add('opacity-0', 'pointer-events-none'); }, 3000);
+        }
+    </script>
+</body>
+</html>
