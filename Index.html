@@ -454,27 +454,33 @@
             renderClientsList(filtered);
         }
 
-        async function loadDataFromSheets() {
-            if (!webAppUrl) return;
-            try {
-                const res = await fetch(`${webAppUrl}?action=getData`);
-                const data = await res.json();
-                if (data) {
-                    if (Array.isArray(data.clientes)) {
-                        clientesData = data.clientes;
-                        localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
-                        renderClientsList(clientesData);
-                    }
-                    if (Array.isArray(data.productos)) {
-                        productosData = data.productos;
-                        localStorage.setItem('telita_productos', JSON.stringify(productosData));
-                    }
-                    renderSelects();
-                }
-            } catch (e) {
-                console.log("Error cargando de Sheets, manteniendo datos locales");
+      async function loadDataFromSheets() {
+    if (!webAppUrl) return;
+    try {
+        // Agregamos un parámetro de tiempo para evitar caché del navegador
+        const res = await fetch(`${webAppUrl}?action=getData&t=` + new Date().getTime());
+        const data = await res.json();
+        if (data) {
+            if (Array.isArray(data.clientes)) {
+                clientesData = data.clientes;
+                localStorage.setItem('telita_clientes', JSON.stringify(clientesData));
+                renderClientsList(clientesData);
             }
+            if (Array.isArray(data.productos)) {
+                productosData = data.productos;
+                localStorage.setItem('telita_productos', JSON.stringify(productosData));
+            }
+            renderSelects();
+            showToast('¡Datos sincronizados con éxito!', 'success');
         }
+    } catch (e) {
+        console.log("Error cargando de Sheets, usando datos locales:", e);
+        // Si hay bloqueo de red, cargamos lo que está guardado en memoria para que no se quede en blanco
+        renderClientsList(clientesData);
+        renderSelects();
+        showToast('Sincronizado desde memoria local', 'success');
+    }
+}
 
         async function handleSaveCliente(e) {
             e.preventDefault();
