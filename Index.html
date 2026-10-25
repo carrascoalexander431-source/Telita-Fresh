@@ -327,7 +327,7 @@
             renderSelects();
 
             fetchTasaBCV();
-            sincronizarDatos(); // Consulta automática al iniciar la app
+            sincronizarDatos(); // Consulta automática en vivo al abrir la aplicación
         });
 
         async function fetchTasaBCV() {
@@ -449,15 +449,18 @@
         }
 
         function filterClients() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = clientesData.filter(c => (c.nombre && c.nombre.toLowerCase().includes(query)) || (c.cedula && c.cedula.toLowerCase().includes(query)));
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const filtered = clientesData.filter(c => 
+                (c.nombre && c.nombre.toLowerCase().includes(query)) || 
+                (c.cedula && c.cedula.toLowerCase().includes(query))
+            );
             renderClientsList(filtered);
         }
 
-        // Método JSONP optimizado para consultar la base de datos de Google Sheets sin bloqueos CORS
+        // Sincronización automática en vivo mediante JSONP (trae todos los datos de la base de datos)
         function sincronizarDatos() {
             if (!webAppUrl) return;
-            showToast('Sincronizando con Google Sheets...', 'success');
+            showToast('Buscando datos en la base de datos...', 'success');
 
             const scriptId = 'jsonp-script-loader';
             const oldScript = document.getElementById(scriptId);
@@ -474,8 +477,8 @@
                         productosData = data.productos;
                         localStorage.setItem('telita_productos', JSON.stringify(productosData));
                     }
-                    renderSelects();
-                    showToast('¡Datos sincronizados con éxito!', 'success');
+                    renderSelects(); // Actualiza tanto la lista de clientes como el menú de pedidos
+                    showToast('¡Datos actualizados desde Google Sheets!', 'success');
                 }
             };
 
@@ -552,9 +555,9 @@
 
             const btn = document.getElementById('btnSavePedido');
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>GUARDANDO Y NOTIFICANDO...</span>`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>GUARDANDO Y NOTIFICANDO...`,
 
-            const params = new URLSearchParams();
+            params = new URLSearchParams();
             params.append('action', 'nuevoPedido');
             params.append('cedulaCliente', cedulaCliente);
             params.append('nombreCliente', nombreCliente);
