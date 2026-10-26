@@ -1,0 +1,244 @@
+﻿<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telita Fresh - Pedido de Clientes</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cream: { 50: '#fdfbf7', 100: '#f8f4eb', 200: '#f0e6d2', 300: '#e5d3b3' },
+                        wood: { 700: '#5c3d2e', 800: '#422a1d', 900: '#2c1a11' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Playfair Display', 'serif'] }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-full text-slate-800 antialiased flex flex-col justify-between max-w-md mx-auto bg-cream-50 shadow-2xl min-h-screen relative">
+
+    <!-- Header / Branding -->
+    <header class="bg-gradient-to-r from-wood-900 via-wood-800 to-wood-900 text-amber-50 p-4 sticky top-0 z-30 shadow-md border-b border-amber-900/50">
+        <div class="flex items-center space-x-3">
+            <div class="w-11 h-11 rounded-full overflow-hidden border-2 border-emerald-400 shadow-md bg-stone-950 flex items-center justify-center">
+                <img src="logo.jpeg" alt="Logo" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='🧀'">
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight text-amber-100 font-serif">TELITA FRESH</h1>
+                <p class="text-[11px] text-emerald-400 font-medium">Haz tu Pedido en Línea</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Form Container -->
+    <main class="flex-1 p-4 pb-12 overflow-y-auto space-y-4">
+        
+        <div class="bg-white p-4 rounded-2xl border shadow-sm space-y-4">
+            <div class="border-b pb-2">
+                <h2 class="text-base font-bold text-wood-900 flex items-center gap-2">
+                    <i class="fa-solid fa-cart-shopping text-emerald-600"></i> Formulario de Pedido
+                </h2>
+                <p class="text-[11px] text-slate-500">Selecciona tus productos y completa tus datos para enviar tu pedido.</p>
+            </div>
+
+            <form id="formPedidoCliente" onsubmit="handleSendPedidoCliente(event)" class="space-y-3">
+                <!-- Datos del Cliente -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Nombre Completo / Empresa *</label>
+                    <input type="text" id="cNombre" required placeholder="Ej: Juan Pérez o Abasto La Esquina" class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Cédula / RIF *</label>
+                    <input type="text" id="cCedula" required placeholder="Ej: V-12345678" class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Teléfono WhatsApp *</label>
+                    <input type="tel" id="cTelefono" required placeholder="Ej: 04141234567" class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <!-- Selección de Producto -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Producto *</label>
+                    <select id="cProducto" required onchange="actualizarPrecioUsd()" class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500">
+                        <option value="">Cargando productos...</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Cantidad *</label>
+                        <input type="number" id="cCantidad" min="1" value="1" required oninput="calcularTotalUsd()" class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Precio Unitario ($)</label>
+                        <input type="text" id="cPrecio" readonly class="w-full bg-slate-100 border rounded-xl p-2.5 text-xs font-bold text-slate-700">
+                    </div>
+                </div>
+
+                <!-- Resumen en Dólares Únicamente -->
+                <div class="bg-cream-100 p-3 rounded-xl border border-cream-300 flex justify-between items-center text-xs">
+                    <span class="text-wood-800 font-bold">Total a Pagar:</span>
+                    <span id="resumenUsdCliente" class="text-sm font-extrabold text-emerald-800">$0.00 USD</span>
+                </div>
+
+                <button type="submit" id="btnEnviarCliente" class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition text-xs">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>ENVIAR PEDIDO</span>
+                </button>
+            </form>
+        </div>
+
+    </main>
+
+    <!-- Feedback Toast -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all opacity-0 pointer-events-none w-11/12 max-w-xs bg-wood-900 text-white text-xs py-3 px-4 rounded-xl shadow-2xl text-center border border-amber-800">
+        Operación realizada
+    </div>
+
+    <script>
+        const WEB_URL = "https://script.google.com/macros/s/AKfycbzdqQaLDLPpZN4EcNpkMovCik9JbvAZJTZzSf6hGpFu_cDT-63QXoY92kQwqEmcLcoO4Q/exec";
+        let productosData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarProductos();
+        });
+
+        // Carga el catálogo de productos desde Google Sheets
+        function cargarProductos() {
+            const scriptId = 'jsonp-productos-loader';
+            if(document.getElementById(scriptId)) document.getElementById(scriptId).remove();
+
+            window.cbProductos = function(res) {
+                if(res && Array.isArray(res.productos)) {
+                    productosData = res.productos;
+                    renderProductosSelect();
+                }
+            }
+
+            let s = document.createElement('script');
+            s.id = scriptId;
+            s.src = `${WEB_URL}?action=getData&callback=cbProductos`;
+            document.body.appendChild(s);
+        }
+
+        function renderProductosSelect() {
+            let select = document.getElementById('cProducto');
+            if(productosData.length === 0) {
+                select.innerHTML = '<option value="">No hay productos disponibles</option>';
+                return;
+            }
+            select.innerHTML = '<option value="">-- Seleccione un producto --</option>' + 
+                productosData.map(p => `<option value="${p.nombre}">${p.nombre} ($${p.precio})</option>`).join('');
+        }
+
+        function actualizarPrecioUsd() {
+            let prodNombre = document.getElementById('cProducto').value;
+            let encontrado = productosData.find(p => p.nombre === prodNombre);
+            if(encontrado) {
+                document.getElementById('cPrecio').value = `$${encontrado.precio.toFixed(2)}`;
+                calcularTotalUsd();
+            } else {
+                document.getElementById('cPrecio').value = '';
+                document.getElementById('resumenUsdCliente').textContent = '$0.00 USD';
+            }
+        }
+
+        function calcularTotalUsd() {
+            let prodNombre = document.getElementById('cProducto').value;
+            let encontrado = productosData.find(p => p.nombre === prodNombre);
+            let cant = parseFloat(document.getElementById('cCantidad').value) || 0;
+            
+            if(encontrado) {
+                let total = cant * encontrado.precio;
+                document.getElementById('resumenUsdCliente').textContent = `$${total.toFixed(2)} USD`;
+            }
+        }
+
+        // Envía el pedido directo al Apps Script y notifica por Telegram
+        function handleSendPedidoCliente(e) {
+            e.preventDefault();
+
+            let nombre = document.getElementById('cNombre').value.trim();
+            let cedula = document.getElementById('cCedula').value.trim();
+            let telefono = document.getElementById('cTelefono').value.trim();
+            let prodNombre = document.getElementById('cProducto').value;
+            let cant = document.getElementById('cCantidad').value;
+            let encontrado = productosData.find(p => p.nombre === prodNombre);
+
+            if(!encontrado) {
+                showToast("Por favor selecciona un producto válido");
+                return;
+            }
+
+            let btn = document.getElementById('btnEnviarCliente');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ENVIANDO...`;
+
+            let totalUsd = (cant * encontrado.precio).toFixed(2);
+            let fecha = new Date().toLocaleString();
+
+            // 1. Guardar o actualizar datos del cliente
+            ejecutarAccionGoogle({
+                action: 'guardarCliente',
+                cedula: cedula,
+                nombre: nombre,
+                telefono: telefono,
+                direccion: 'Pedido en línea'
+            });
+
+            // 2. Registrar el pedido (sin cálculo en bolívares)
+            setTimeout(() => {
+                ejecutarAccionGoogle({
+                    action: 'nuevoPedido',
+                    cedulaCliente: cedula,
+                    nombreCliente: nombre,
+                    productos: `${cant}x ${prodNombre} ($${encontrado.precio} c/u)`,
+                    totalUsd: totalUsd,
+                    totalBs: "0.00",
+                    fecha: fecha
+                });
+
+                showToast("¡Pedido enviado con éxito!");
+                document.getElementById('formPedidoCliente').reset();
+                document.getElementById('cPrecio').value = '';
+                document.getElementById('resumenUsdCliente').textContent = '$0.00 USD';
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ENVIAR PEDIDO`;
+            }, 1000);
+        }
+
+        function ejecutarAccionGoogle(paramsObj) {
+            const actionId = 'action-client-loader';
+            if(document.getElementById(actionId)) document.getElementById(actionId).remove();
+
+            let params = new URLSearchParams(paramsObj);
+            params.append('callback', 'cbClienteAccion');
+
+            window.cbClienteAccion = function(res) {};
+
+            let s = document.createElement('script');
+            s.id = actionId;
+            s.src = `${WEB_URL}?${params.toString()}`;
+            document.body.appendChild(s);
+        }
+
+        function showToast(msg) {
+            let t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => t.classList.add('opacity-0', 'pointer-events-none'), 3500);
+        }
+    </script>
+</body>
+</html>
